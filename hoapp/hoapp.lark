@@ -1,0 +1,88 @@
+%import common.ESCAPED_STRING -> STRING
+%import common.WS
+
+COMMENT: "/*" /(.|\n)+/ "*/"
+%ignore COMMENT
+%ignore WS
+
+INT: /0|[1-9][0-9]*/
+// .1 denotes that these rules have higher priority
+// (so they will match over IDENTIFIER)
+INTLIT.1: /i0|i[1-9][0-9]*/
+REALLIT.1: /r[0-9]*(\.[0-9]*)?/
+BOOLEAN.1: "t" | "f"
+TOOL_HEADER.2 : "tool:"
+LOGIC_OP: "&"|"|"
+LOGIC_NEG: "!"
+
+IDENTIFIER: /[a-zA-Z_][0-9a-zA-Z_-]*/
+ANAME: /@[0-9a-zA-Z_-]+/
+HEADERNAME: /[a-zA-Z_][0-9a-zA-Z_-]*:/
+
+automaton : header "--BODY--" body "--END--"
+header : format_version header_item*
+format_version : "HOA:" IDENTIFIER
+!header_item : "States:" INT
+    | "Start:" state_conj
+    | "AP:" INT STRING*
+    | "AP-type:" TYPE+
+    | "Alias:" ANAME label_expr
+    | "Acceptance:" INT acceptance_cond
+    | "acc-name:" IDENTIFIER (BOOLEAN|INT|IDENTIFIER)*
+    | TOOL_HEADER STRING STRING?
+    | "name:" STRING
+    | "properties:" IDENTIFIER*
+    | HEADERNAME (BOOLEAN|INT|STRING|IDENTIFIER)*
+
+// Acceptance conditions
+
+?acceptance_cond : acceptance_atom
+    | "(" acceptance_cond ")"
+    | acceptance_conj
+    | acceptance_disj
+    | BOOLEAN
+
+acceptance_atom : INF_FIN "(" [BANG] INT ")"
+acceptance_conj : acceptance_cond "&" acceptance_cond
+acceptance_disj : acceptance_cond "|" acceptance_cond
+BANG : "!"
+INF_FIN : "Inf"|"Fin"
+
+?state_conj : INT ("&" INT)*
+
+// Expressions
+
+?label_expr : disj
+
+?base_expr : BOOLEAN | INTLIT | REALLIT | INT | ANAME | neg | minus
+             | "(" label_expr ")"
+            //  | label_expr LOGIC_OP label_expr
+
+?disj : conj ("|" conj)*
+?conj : eq ("&" eq)*
+?eq : compare (EQOP compare)?
+?compare : addsub (CMPOP addsub)*
+?addsub : mul (SUMOP mul)*
+?mul : base_expr ("*" base_expr)*
+neg : "!" base_expr
+minus: "-" base_expr
+
+EQOP : "=="|"!="
+CMPOP : "<"|"<="|">"|">="
+SUMOP : "+"|"-"
+TYPE : "int" | "bool" | "real"
+
+// Body ///////////////////////////////////////////////////////////////////////
+
+body : (state)*
+
+state: state_name edge*
+// the optional dstring can be used to name the state for
+// cosmetic or debugging purposes, as in ltl2dstar's format
+state_name : "State:" [label] INT [STRING] [acc_sig]
+acc_sig : "{" INT* "}"
+edge : [label] state_conj [acc_sig]
+label : "[" label_expr "]"
+
+// Used for testing ///////////////////////////////////////////////////////////
+test_terminals: REALLIT | INTLIT | BOOLEAN | IDENTIFIER
