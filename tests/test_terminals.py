@@ -1,0 +1,32 @@
+from lark import UnexpectedToken
+import pytest
+
+from hoapp.ast import IntLit, RealLit
+from hoapp.parser import parser
+
+p = parser("label_expr")
+
+
+def test_intlit():
+    for x in (0, 10, 23, 100, 999):
+        test_string = f"i{x}"
+        result = p.parse(test_string)
+        assert isinstance(result, IntLit)
+        assert int(result) == x
+
+
+def test_reallit():
+    for x in ("0.", "0.0", "0.01", "100.", "999"):
+        test_string = f"r{x}"
+        result = p.parse(test_string)
+        assert isinstance(result, RealLit)
+        assert float(result) == float(x)
+
+
+def test_bad_intlit():
+    with pytest.raises(UnexpectedToken):
+        p.parse("i00")
+    with pytest.raises(UnexpectedToken):
+        p.parse("i01")
+    with pytest.raises(UnexpectedToken):
+        p.parse("i00123")
