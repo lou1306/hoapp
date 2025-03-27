@@ -1,0 +1,163 @@
+from importlib import resources
+from typing import Counter
+
+from lark import Lark, Token, Transformer
+
+from hoapp.ast import (AccAtom, AccCompound, Alias, Automaton, Boolean,
+                       Comparison, Edge, Identifier, Int, IntLit, LogicOp,
+                       RealLit, State, String, Type, USub)
+
+grammar_file = resources.files().joinpath("hoapp.lark")
+
+
+class MakeAst(Transformer):
+
+    @staticmethod
+    def _id(tree):
+        return tree
+
+    @staticmethod
+    def _head(tree):
+        return tree[0]
+
+    @staticmethod
+    def _terminal(typ, value, tok=None):
+        result = typ(value)
+        result.set_tok(tok if tok is not None else value)
+        return result
+
+    def ANAME(self, tok: Token):
+        return MakeAst._terminal(Alias, tok)
+
+    def BOOLEAN(self, tok: Token):
+        return MakeAst._terminal(Boolean, tok == "t", tok)
+
+    def INT(self, tok: Token):
+        return MakeAst._terminal(Int, tok)
+
+    def INTLIT(self, tok: Token):
+        return MakeAst._terminal(IntLit, tok[1:], tok)
+
+    def IDENTIFIER(self, tok):
+        return MakeAst._terminal(Identifier, tok)
+
+    def REALLIT(self, tok: Token):
+        return MakeAst._terminal(RealLit, tok[1:], tok)
+
+    def STRING(self, tok):
+        return String(tok[1:-1])
+
+    def TYPE(self, tok):
+        return Type(tok)
+
+    format_version = _head
+    acc_sig = _head
+    label = _head
+    header = _id
+    body = _id
+    acc_sig = _id
+
+    def header_item(self, tree):
+        return {str(tree[0])[:-1]: tree[1] if len(tree) == 2 else tree[1:]}
+
+    def compare(self, tree):
+        return Comparison(tree[0], tree[1].value, tree[2])
+
+    def eq(self, tree):
+        return self.compare(tree)
+
+    def conj(self, tree):
+        return LogicOp(tuple(tree), "&")
+
+    def disj(self, tree):
+        return LogicOp(tuple(tree), "|")
+
+    def state_conj(self, tree):
+        return self.conj(tuple(tree))
+
+    def neg(self, tree):
+        return LogicOp(tuple(tree), "!")
+
+    def minus(self, tree):
+        return USub(tree[0])
+
+    def acceptance_atom(self, tree):
+        return AccAtom(tree[0] == "Inf", tree[1] is not None, tree[2])
+
+    def acceptance_conj(self, tree):
+        return AccCompound(tree[0], "&", tree[1])
+
+    def acceptance_disj(self, tree):
+        return AccCompound(tree[0], "|", tree[1])
+
+    def edge(self, tree):
+        return Edge(*tree)
+
+    def state(self, tree):
+        label, index, name, acc_sig = tree[0].children
+        return State(label, index, name, acc_sig, tree[1:])
+        # input()
+
+    def automaton(self, tree):
+        canonical_headers = (
+            "Acceptance", "acc-name", "Alias",
+            "AP", "AP-type", "controllable-AP", "name",
+            "properties", "Start", "States", "tool")
+        dicts = [x for x in tree[0] if isinstance(x, dict)]
+        print(dicts)
+        all_headers = Counter(x for d in dicts for x in d.keys())
+        multiple_headers = (
+            x for x in all_headers if all_headers[x] > 1
+            and x not in ("Start", "Alias", "properties"))
+        err_msg = "\n".join(
+            f"Too many '{x}:' headers." for x in multiple_headers)
+        if err_msg:
+            raise Exception(err_msg)
+
+        version = tree[0][0]
+        num_states, aps, name, tool, num_acc, acc = [None] * 6
+        start, aliases, properties, headers = [], [], [], []
+        for d in dicts:
+            num_states = num_states or d.get("States")
+            name = name or d.get("name")
+            tool = tool or d.get("tool")
+            new_start = d.get("Start")
+            if new_start is not None:
+                start.append(new_start)
+            new_ap = d.get("AP")
+            if new_ap is not None:
+                num_aps, *aps = new_ap
+                if len(aps) != num_aps:
+                    raise Exception("AP number mismatch")
+                counter_aps = Counter(aps)
+                multiple_aps = [x for x in counter_aps if counter_aps[x] > 1]
+                if multiple_aps:
+                    raise Exception(f"Duplicate APs: {multiple_aps}")
+            new_acc = d.get("Acceptance")
+            if new_acc:
+                num_acc, *acc = new_acc
+
+            new_alias = d.get("Alias")
+            if new_alias is not None:
+                aliases.append((new_alias[0], new_alias[1]))
+            properties.extend(d.get("properties", []))
+            others = (k for k in d if k not in canonical_headers)
+            for k in others:
+                headers.append((k, d[k]))
+
+        return Automaton(
+            version, name,
+            tool if isinstance(tool, str) else tuple(tool) if tool else None,
+            num_states, tuple(start), aps,
+            tuple(tree[1]),  # states
+            num_acc, acc,
+            tuple(aliases),
+            tuple(properties),
+            tuple(headers))
+
+
+def parser(start="test_terminals"):
+    with open(grammar_file) as grammar:
+        parser = Lark(grammar, start=start, parser="lalr", transformer=MakeAst())
+        # parser = Lark(grammar, start=start)
+    return parser
