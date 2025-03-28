@@ -16,7 +16,7 @@ class Expr:
     def set_tok(self, tok: Token):
         self.tok = tok
 
-    def pprint(self):
+    def pprint(self, *_):
         return str(self)
 
 # Terminals ###################################################################
@@ -69,8 +69,9 @@ class Identifier(str, Expr):
 class USub(Expr):
     operand: Expr
 
-    def pprint(self):
-        return f"-({self.operand.pprint()})"
+    def pprint(self, paren=False):
+        result = f"-{self.operand.pprint(True)}"
+        return f"({result})" if paren else result
 
 
 @dataclass(frozen=True)
@@ -78,9 +79,11 @@ class LogicOp(Expr):
     operands: tuple[Expr]
     op: str
 
-    def pprint(self):
-        x = f" {self.op} ".join(x.pprint() for x in self.operands)
-        return f"({x})"
+    def pprint(self, paren=False):
+        if self.op == "!":
+            return f"!{self.operands[0].pprint(True)}"
+        x = f" {self.op} ".join(x.pprint(True) for x in self.operands)
+        return f"({x})" if paren else x
 
 
 @dataclass(frozen=True)
@@ -89,8 +92,9 @@ class Comparison(Expr):
     op: str
     right: Expr
 
-    def pprint(self):
-        return f"({self.left.pprint()} {self.op} {self.right.pprint()})"
+    def pprint(self, paren=False):
+        result = f"{self.left.pprint(True)} {self.op} {self.right.pprint(self.op != ":=")}"  # noqa: E501
+        return f"({result})" if paren else result
 
 
 # Acceptance conditions #######################################################
