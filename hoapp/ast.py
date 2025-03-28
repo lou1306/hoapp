@@ -183,6 +183,7 @@ class Edge:
 @dataclass(frozen=True)
 class State:
     label: Expr | None
+    obligations: tuple[Comparison]
     index: int
     name: str | None
     acc_sig: tuple

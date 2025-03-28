@@ -4,7 +4,7 @@ from typing import Counter
 from lark import Lark, Token, Transformer
 
 from hoapp.ast import (AccAtom, AccCompound, Alias, Automaton, Boolean,
-                       Comparison, Edge, Identifier, Int, IntLit, LogicOp,
+                       Comparison, Edge, Expr, Identifier, Int, IntLit, LogicOp,
                        RealLit, State, String, Type, USub)
 
 grammar_file = resources.files().joinpath("hoapp.lark")
@@ -56,6 +56,7 @@ class MakeAst(Transformer):
     header = _id
     body = _id
     acc_sig = _id
+    state_name = _id
 
     def header_item(self, tree):
         return {str(tree[0])[:-1]: tree[1] if len(tree) == 2 else tree[1:]}
@@ -101,24 +102,27 @@ class MakeAst(Transformer):
     def acceptance_disj(self, tree):
         return AccCompound(tree[0], "|", tree[1])
 
-    def edge(self, tree):
-        if tree[0] is not None:
-            label_expr, *obligations = tree[0]
-            if obligations and obligations[0] is None:
-                obligations = None
-        else:
-            label_expr, obligations = None, None
-        obligations = obligations or tuple()
-        e = Edge(label_expr, tuple(obligations), *tree[1:])
-        return e
-
     def obligation(self, tree):
         return Comparison(tree[0], ":=", tree[1])
 
+    def _handle_label(self, tree) -> tuple[Expr | None, LogicOp | None]:
+        if tree[0] is not None:
+            label_expr, *obligations = tree[0]
+            if obligations and obligations[0] is None:
+                obligations = tuple()
+        else:
+            label_expr, obligations = None, tuple()
+        return label_expr, tuple(obligations)
+
+    def edge(self, tree):
+        label_expr, obligations = self._handle_label(tree)
+        e = Edge(label_expr, tuple(obligations), *tree[1:])
+        return e
+
     def state(self, tree):
-        label, index, name, acc_sig = tree[0].children
-        return State(label, index, name, acc_sig, tree[1:])
-        # input()
+        label_expr, obligations = self._handle_label(tree[0])
+        _, index, name, acc_sig = tree[0]
+        return State(label_expr, obligations, index, name, acc_sig, tree[1:])
 
     def automaton(self, tree):
         canonical_headers = (
