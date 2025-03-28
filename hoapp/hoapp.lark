@@ -82,7 +82,10 @@ state: state_name edge*
 state_name : "State:" [label] INT [STRING] [acc_sig]
 acc_sig : "{" INT* "}"
 edge : [label] state_conj [acc_sig]
-label : "[" label_expr "]"
+label : "[" label_expr ["$" obligation ("," obligation)*] "]"
 
-// Used for testing ///////////////////////////////////////////////////////////
-test_terminals: REALLIT | INTLIT | BOOLEAN | IDENTIFIER
+obligation : (INT|ANAME) ":=" label_expr
+
+// For internal use ///////////////////////////////////////////////////////////
+?test_terminals: REALLIT | INTLIT | BOOLEAN | IDENTIFIER
+?expr_or_obligation: label_expr | obligation
