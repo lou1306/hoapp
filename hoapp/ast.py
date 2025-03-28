@@ -19,6 +19,13 @@ class Expr:
     def pprint(self, *_):
         return str(self)
 
+    def collect(self, t):
+        if isinstance(self, t):
+            yield self
+
+    def replace_by(self, mapping):
+        return mapping.get(self, self)
+
 # Terminals ###################################################################
 
 
@@ -73,6 +80,11 @@ class USub(Expr):
         result = f"-{self.operand.pprint(True)}"
         return f"({result})" if paren else result
 
+    def collect(self, t):
+        if isinstance(self, t):
+            yield self
+        yield from self.operand.collect(t)
+
 
 @dataclass(frozen=True)
 class LogicOp(Expr):
@@ -85,6 +97,18 @@ class LogicOp(Expr):
         x = f" {self.op} ".join(x.pprint(True) for x in self.operands)
         return f"({x})" if paren else x
 
+    def collect(self, t):
+        if isinstance(self, t):
+            yield self
+        for o in self.operands:
+            yield from o.collect(t)
+
+    def replace_by(self, mapping):
+        if self in mapping:
+            return mapping[self]
+        ops = [o.replace_by(mapping) for o in self.operands]
+        return LogicOp(operands=ops, op=self.op)
+
 
 @dataclass(frozen=True)
 class Comparison(Expr):
@@ -96,6 +120,14 @@ class Comparison(Expr):
         result = f"{self.left.pprint(True)} {self.op} {self.right.pprint(self.op != ":=")}"  # noqa: E501
         return f"({result})" if paren else result
 
+    def collect(self, t):
+        if isinstance(self, t):
+            yield self
+        yield from self.left.collect(t)
+        yield from self.right.collect(t)
+
+    def replace_by(self, mapping):
+        return mapping.get(self, self)
 
 # Acceptance conditions #######################################################
 
@@ -141,6 +173,12 @@ class Edge:
         sig = "" if self.acc_sig is None else f" {{{' '.join(self.acc_sig)}}}"
         return f"{label}{self.target}{sig}"
 
+    def collect(self, t):
+        if self.label:
+            yield from self.label.collect(t)
+        for o in self.obligations:
+            yield from o.collect(t)
+
 
 @dataclass(frozen=True)
 class State:
@@ -156,6 +194,12 @@ class State:
         return "\n".join((
             f"State: {label}{self.index}{sig}",
             *(e.pprint() for e in self.edges)))
+
+    def collect(self, t):
+        if self.label:
+            yield from self.label.collect(t)
+        for e in self.edges:
+            yield from e.collect(t)
 
 
 @dataclass(frozen=True)
@@ -196,3 +240,7 @@ class Automaton:
             "\n--BODY--\n",
             "\n".join(s.pprint() for s in self.states),
             "\n--END--"))
+
+    def collect(self, t):
+        for s in self.states:
+            yield from s.collect(t)
