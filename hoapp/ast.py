@@ -126,11 +126,14 @@ class AccCompound(AccCond):
 @dataclass(frozen=True)
 class Edge:
     label: Expr | None
+    obligations: tuple[Comparison]
     target: Expr
     acc_sig: any
 
     def pprint(self):
-        label = "" if self.label is None else f"[{self.label.pprint()}]"
+        ob = ", ".join(x.pprint() for x in self.obligations)
+        ob = f" $ {ob}" if ob else ""
+        label = "" if self.label is None else f"[{self.label.pprint()}{ob}] "
         sig = "" if self.acc_sig is None else f" {{{' '.join(self.acc_sig)}}}"
         return f"{label}{self.target}{sig}"
 
@@ -141,10 +144,10 @@ class State:
     index: int
     name: str | None
     acc_sig: tuple
-    edges: tuple
+    edges: tuple[Edge]
 
     def pprint(self):
-        label = f"[{self.label}] " if self.label is not None else ""
+        label = f"[{self.label.pprint()}] " if self.label is not None else ""
         sig = "" if self.acc_sig is None else f" {{{' '.join(str(x) for x in self.acc_sig)}}}"  # noqa: E501
         return "\n".join((
             f"State: {label}{self.index}{sig}",
@@ -159,6 +162,8 @@ class Automaton:
     num_states: int | None
     start: tuple[Int]
     ap: tuple[str]
+    aptype: tuple[Type] | None
+    controllable_ap: tuple[Int] | None
     states: tuple[State]
     acceptance_sets: int
     acceptance: AccCond
@@ -169,6 +174,10 @@ class Automaton:
     def pprint(self):
         start = (f"Start: {x}" for x in self.start)
         aliases = (f"Alias: {x[0]} {x[1]}" for x in self.aliases)
+        headers = (f"{h}: {v}" for h, v in self.headers)
+        controllable = (
+            f"""controllable-AP: {" ".join(str(x) for x in self.controllable_ap)}"""
+            if self.controllable_ap else "")
         header = (
             f"HOA: {self.version}",
             f"name: {self.name}" if self.name else "",
@@ -176,7 +185,7 @@ class Automaton:
             f"States: {self.num_states}" if self.num_states is not None else "",  # noqa: E501
             f"""AP: {len(self.ap)} {" ".join(f'"{x}"' for x in self.ap)}""",
             f"""Acceptance: {self.acceptance_sets} {" ".join(x.pprint() for x in self.acceptance)}""",  # noqa: E501
-            *start, *aliases
+            controllable, *start, *aliases, *headers
         )
         return "".join((
             "\n".join(x for x in header if x),

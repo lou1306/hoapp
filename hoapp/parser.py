@@ -52,7 +52,7 @@ class MakeAst(Transformer):
 
     format_version = _head
     acc_sig = _head
-    label = _head
+    label = _id
     header = _id
     body = _id
     acc_sig = _id
@@ -62,6 +62,17 @@ class MakeAst(Transformer):
 
     def compare(self, tree):
         return Comparison(tree[0], tree[1].value, tree[2])
+
+    def addsub(self, tree):
+        lhs, op, rhs, *tree = tree
+        node = Comparison(lhs, op.value, rhs)
+        while tree:
+            op, rhs, *tree = tree
+            node = Comparison(node, op.value, rhs)
+        return node
+
+    def mul(self, tree):
+        return LogicOp(tuple(tree), "*")
 
     def eq(self, tree):
         return self.compare(tree)
@@ -91,7 +102,18 @@ class MakeAst(Transformer):
         return AccCompound(tree[0], "|", tree[1])
 
     def edge(self, tree):
-        return Edge(*tree)
+        if tree[0] is not None:
+            label_expr, *obligations = tree[0]
+            if obligations and obligations[0] is None:
+                obligations = None
+        else:
+            label_expr, obligations = None, None
+        obligations = obligations or tuple()
+        e = Edge(label_expr, tuple(obligations), *tree[1:])
+        return e
+
+    def obligation(self, tree):
+        return Comparison(tree[0], ":=", tree[1])
 
     def state(self, tree):
         label, index, name, acc_sig = tree[0].children
@@ -104,7 +126,6 @@ class MakeAst(Transformer):
             "AP", "AP-type", "controllable-AP", "name",
             "properties", "Start", "States", "tool")
         dicts = [x for x in tree[0] if isinstance(x, dict)]
-        print(dicts)
         all_headers = Counter(x for d in dicts for x in d.keys())
         multiple_headers = (
             x for x in all_headers if all_headers[x] > 1
@@ -115,7 +136,7 @@ class MakeAst(Transformer):
             raise Exception(err_msg)
 
         version = tree[0][0]
-        num_states, aps, name, tool, num_acc, acc = [None] * 6
+        num_states, aps, types, name, tool, num_acc, acc, ctrl_aps = [None] * 8
         start, aliases, properties, headers = [], [], [], []
         for d in dicts:
             num_states = num_states or d.get("States")
@@ -141,6 +162,8 @@ class MakeAst(Transformer):
             if new_alias is not None:
                 aliases.append((new_alias[0], new_alias[1]))
             properties.extend(d.get("properties", []))
+            ctrl_aps = ctrl_aps or d.get("controllable-AP")
+            types = types or d.get("AP-type")
             others = (k for k in d if k not in canonical_headers)
             for k in others:
                 headers.append((k, d[k]))
@@ -148,7 +171,7 @@ class MakeAst(Transformer):
         return Automaton(
             version, name,
             tool if isinstance(tool, str) else tuple(tool) if tool else None,
-            num_states, tuple(start), aps,
+            num_states, tuple(start), aps, tuple(types), tuple(ctrl_aps),
             tuple(tree[1]),  # states
             num_acc, acc,
             tuple(aliases),
