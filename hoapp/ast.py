@@ -1,14 +1,21 @@
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum
 from typing import Generator, Optional, Any, ParamSpec, TypeVar, Union
 
 from lark import Token
 
 
-class Type(StrEnum):
+class Type(Enum):
     BOOL = "bool"
     INT = "int"
     REAL = "auto"
+
+    def __le__(self, other) -> bool:
+        if not isinstance(other, Type):
+            return False
+        if self == Type.INT:
+            return other in (Type.REAL, Type.INT)
+        return self == other
 
 
 class Expr:
