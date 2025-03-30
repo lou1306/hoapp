@@ -7,7 +7,7 @@ from hoapp.parser import parser
 p = parser("label_expr")
 
 
-def test_intlit():
+def test_intlit() -> None:
     for x in (0, 10, 23, 100, 999):
         test_string = f"i{x}"
         result = p.parse(test_string)
@@ -15,7 +15,7 @@ def test_intlit():
         assert int(result) == x
 
 
-def test_reallit():
+def test_reallit() -> None:
     for x in ("0.", "0.0", "0.01", "100.", "999"):
         test_string = f"r{x}"
         result = p.parse(test_string)
@@ -23,7 +23,7 @@ def test_reallit():
         assert float(result) == float(x)
 
 
-def test_bad_intlit():
+def test_bad_intlit() -> None:
     with pytest.raises(UnexpectedToken):
         p.parse("i00")
     with pytest.raises(UnexpectedToken):

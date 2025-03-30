@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Generator, Optional, Any, ParamSpec, TypeVar, Union
 
 from lark import Token
 
@@ -13,17 +14,17 @@ class Type(StrEnum):
 class Expr:
     """Expression abstract class, mainly just for type hinting
     """
-    def set_tok(self, tok: Token):
+    def set_tok(self, tok: Token) -> None:
         self.tok = tok
 
-    def pprint(self, *_):
+    def pprint(self, *_) -> str:
         return str(self)
 
-    def collect(self, t):
+    def collect(self, t) -> Generator:
         if isinstance(self, t):
             yield self
 
-    def replace_by(self, mapping):
+    def replace_by(self, mapping) -> "Expr":
         return mapping.get(self, self)
 
 # Terminals ###################################################################
@@ -88,13 +89,19 @@ class USub(Expr):
 
 @dataclass(frozen=True)
 class LogicOp(Expr):
-    operands: tuple[Expr]
+    operands: tuple[Expr, ...]
     op: str
+
+    def __post_init__(self):
+        if type(self.operands) is not tuple:
+            raise Exception(f"expected tuple, got {type(self.operands)}")
 
     def pprint(self, paren=False):
         if self.op == "!":
             return f"!{self.operands[0].pprint(True)}"
-        x = f" {self.op} ".join(x.pprint(True) for x in self.operands)
+        x = f" {self.op} ".join(
+            x.pprint(len(self.operands) > 1)
+            for x in self.operands)
         return f"({x})" if paren else x
 
     def collect(self, t):
@@ -106,7 +113,7 @@ class LogicOp(Expr):
     def replace_by(self, mapping):
         if self in mapping:
             return mapping[self]
-        ops = [o.replace_by(mapping) for o in self.operands]
+        ops = tuple(o.replace_by(mapping) for o in self.operands)
         return LogicOp(operands=ops, op=self.op)
 
 
@@ -161,16 +168,16 @@ class AccCompound(AccCond):
 
 @dataclass(frozen=True)
 class Edge:
-    label: Expr | None
-    obligations: tuple[Comparison]
     target: Expr
-    acc_sig: any
+    acc_sig: tuple[int, ...] = field(default_factory=tuple)
+    label: Optional[Expr] = None
+    obligations: tuple[Comparison, ...] = field(default_factory=tuple)
 
     def pprint(self):
         ob = ", ".join(x.pprint() for x in self.obligations)
         ob = f" $ {ob}" if ob else ""
-        label = "" if self.label is None else f"[{self.label.pprint()}{ob}] "
-        sig = "" if self.acc_sig is None else f" {{{' '.join(self.acc_sig)}}}"
+        label = f"[{self.label.pprint()}{ob}] " if self.label else ""
+        sig = f" {{{' '.join(self.acc_sig)}}}" if self.acc_sig else ""
         return f"{label}{self.target}{sig}"
 
     def collect(self, t):
@@ -182,16 +189,16 @@ class Edge:
 
 @dataclass(frozen=True)
 class State:
-    label: Expr | None
-    obligations: tuple[Comparison]
     index: int
-    name: str | None
-    acc_sig: tuple
-    edges: tuple[Edge]
+    name: Optional[str] = None
+    label: Optional[Expr] = None
+    obligations: tuple[Comparison, ...] = field(default_factory=tuple)
+    acc_sig: tuple[int, ...] = field(default_factory=tuple)
+    edges: tuple[Edge, ...] = field(default_factory=tuple)
 
     def pprint(self):
         label = f"[{self.label.pprint()}] " if self.label is not None else ""
-        sig = "" if self.acc_sig is None else f" {{{' '.join(str(x) for x in self.acc_sig)}}}"  # noqa: E501
+        sig = f" {{{' '.join(str(x) for x in self.acc_sig)}}}" if self.acc_sig else ""  # noqa: E501
         return "\n".join((
             f"State: {label}{self.index}{sig}",
             *(e.pprint() for e in self.edges)))
@@ -209,23 +216,23 @@ class Automaton:
     name: str | None
     tool: str | tuple[str, str] | None
     num_states: int | None
-    start: tuple[Int]
-    ap: tuple[str]
+    start: tuple[Int, ...]
+    ap: tuple[str, ...]
     aptype: tuple[Type] | None
-    controllable_ap: tuple[Int] | None
-    states: tuple[State]
+    controllable_ap: tuple[Int, ...]
+    states: tuple[State, ...]
     acceptance_sets: int
     acceptance: AccCond
-    aliases: tuple[tuple[str, Expr]]
-    properties: tuple[str]
-    headers: tuple[tuple[str, any]]
+    aliases: tuple[tuple[str, Expr], ...]
+    properties: tuple[str, ...]
+    headers: tuple[tuple[str, Any], ...]
 
     def pprint(self):
         start = (f"Start: {x}" for x in self.start)
         aliases = (f"Alias: {x[0]} {x[1]}" for x in self.aliases)
         headers = (f"{h}: {v}" for h, v in self.headers)
         controllable = (
-            f"""controllable-AP: {" ".join(str(x) for x in self.controllable_ap)}"""
+            f"""controllable-AP: {" ".join(str(x) for x in self.controllable_ap)}"""  # noqa: E501
             if self.controllable_ap else "")
         header = (
             f"HOA: {self.version}",

@@ -1,7 +1,11 @@
 
-from itertools import chain
-from hoapp.ast import Alias, Automaton, Comparison, Edge, Int, LogicOp, State
 from collections import defaultdict
+from itertools import chain
+from typing import Mapping
+
+from hoapp.ast import (Alias, Automaton, Comparison, Edge, Expr, Identifier,
+                       Int, LogicOp, State)
+from hoapp.parser import parser
 
 
 def counter():
@@ -13,12 +17,11 @@ def counter():
 
 
 def makeV1(aut: Automaton):
-    exprs = defaultdict(counter())
+    exprs: Mapping[Expr, int] = defaultdict(counter())
     # Collect things that type to Boolean
-    repl = (aut.collect(x) for x in (Comparison, Int, Alias))
-    repl = set(chain.from_iterable(repl))
+    collect = (aut.collect(x) for x in (Comparison, Int, Alias))
     # Make order deterministic
-    repl = sorted(repl, key=lambda x: x.pprint())
+    repl = sorted(set(chain.from_iterable(collect)), key=lambda x: x.pprint())
     # Give AP numbers to these expressions
     _ = [exprs[x] for x in repl]
 
@@ -26,7 +29,7 @@ def makeV1(aut: Automaton):
         lbl = node.label.replace_by(exprs) if node.label else None
         if node.obligations:
             obls = [o.replace_by(exprs) for o in node.obligations]
-            lbl = LogicOp((lbl, *obls, ), "&") if lbl else LogicOp(obls, "&")
+            lbl = LogicOp((lbl, *obls, ), "&") if lbl else LogicOp(tuple(obls), "&")  # noqa: E501
         return lbl
 
     states = []
@@ -35,12 +38,12 @@ def makeV1(aut: Automaton):
         edges = []
         for e in s.edges:
             lbl = make_v1_label(e)
-            edges.append(Edge(lbl, tuple(), e.target, e.acc_sig))
-        states.append(State(state_lbl, tuple(), s.index, s.name, s.acc_sig, edges))
+            edges.append(Edge(e.target, label=lbl, acc_sig=e.acc_sig))
+        s1 = State(s.index, s.name, state_lbl, acc_sig=s.acc_sig, edges=tuple(edges))  # noqa: E501
+        states.append(s1)  # noqa: E501
 
-    aps = sorted(exprs.keys(), key=exprs.get)
-    aps = [x.pprint() for x in aps]
+    aps = tuple(x.pprint() for x in sorted(exprs.keys(), key=lambda x: exprs[x]))  # noqa: E501
     return Automaton(
-        "v1", aut.name, aut.tool, len(states),
-        aut.start, aps, None, None, states, aut.acceptance_sets,
+        Identifier("v1"), aut.name, aut.tool, len(states),
+        aut.start, aps, None, tuple(), tuple(states), aut.acceptance_sets,
         aut.acceptance, tuple(), tuple(), tuple())

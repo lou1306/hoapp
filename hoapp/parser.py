@@ -105,7 +105,7 @@ class MakeAst(Transformer):
     def obligation(self, tree):
         return Comparison(tree[0], ":=", tree[1])
 
-    def _handle_label(self, tree) -> tuple[Expr | None, LogicOp | None]:
+    def _handle_label(self, tree) -> tuple[Expr | None, tuple[LogicOp, ...]]:
         if tree[0] is not None:
             label_expr, *obligations = tree[0]
             if obligations and obligations[0] is None:
@@ -116,13 +116,15 @@ class MakeAst(Transformer):
 
     def edge(self, tree):
         label_expr, obligations = self._handle_label(tree)
-        e = Edge(label_expr, tuple(obligations), *tree[1:])
+        target, acc_sig = tree[1:]
+        e = Edge(target, acc_sig, label_expr, tuple(obligations))
         return e
 
     def state(self, tree):
         label_expr, obligations = self._handle_label(tree[0])
         _, index, name, acc_sig = tree[0]
-        return State(label_expr, obligations, index, name, acc_sig, tree[1:])
+        edges = tuple(tree[1:])
+        return State(index, name, label_expr, obligations, acc_sig, edges)
 
     def automaton(self, tree):
         canonical_headers = (
