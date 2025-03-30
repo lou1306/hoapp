@@ -46,7 +46,7 @@ def makeV1pp(v1: Automaton, v1pp: Automaton):
         for e in s.edges:
             lbl, ob = handle_label(e)
             edges.append(Edge(e.target, e.acc_sig, lbl, ob))
-        states.append(State(s.index, s.name, state_lbl, state_ob, s.acc_sig, tuple(edges)))
+        states.append(State(s.index, s.name, state_lbl, state_ob, s.acc_sig, tuple(edges)))  # noqa: E501
     return Automaton(
         Identifier("v1pp"), v1pp.name, v1pp.tool, v1pp.num_states,
         v1pp.start, v1pp.ap, v1pp.aptype, v1pp.controllable_ap,

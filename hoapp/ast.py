@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Generator, Optional, Any, ParamSpec, TypeVar, Union
+from typing import Any, Generator, Optional
+
 
 from lark import Token
 
@@ -199,6 +200,7 @@ class Comparison(Expr):
         return result
 
 # Acceptance conditions #######################################################
+
 
 class AccCond:
     pass

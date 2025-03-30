@@ -4,8 +4,8 @@ from typing import Counter
 from lark import Lark, Token, Transformer
 
 from hoapp.ast import (AccAtom, AccCompound, Alias, Automaton, Boolean,
-                       Comparison, Edge, Expr, Identifier, Int, IntLit, LogicOp,
-                       RealLit, State, String, Type, USub)
+                       Comparison, Edge, Expr, Identifier, Int, IntLit,
+                       LogicOp, RealLit, State, String, Type, USub)
 
 grammar_file = resources.files().joinpath("hoapp.lark")
 
@@ -187,6 +187,5 @@ class MakeAst(Transformer):
 
 def parser(start="test_terminals"):
     with open(grammar_file) as grammar:
-        parser = Lark(grammar, start=start, parser="lalr", transformer=MakeAst())
-        # parser = Lark(grammar, start=start)
+        parser = Lark(grammar, start=start, parser="lalr", transformer=MakeAst())  # noqa: E501
     return parser
