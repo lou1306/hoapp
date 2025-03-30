@@ -16,6 +16,44 @@ def counter():
     return add_one
 
 
+def makeV1pp(v1: Automaton, v1pp: Automaton):
+    p = parser("expr_or_obligation")
+    ap2ast = {Int(i): p.parse(x) for i, x in enumerate(v1.ap)}
+
+    def is_obligation(e: Expr):
+        return type(e) is Comparison and e.op == ":="
+
+    def remove_obligations(e: Expr):
+        if isinstance(e, LogicOp):
+            ops = tuple(x for x in e.operands if not is_obligation(x))
+            return LogicOp(ops, e.op)
+        return e
+
+    def handle_label(node: State | Edge):
+        if node.label is None:
+            return None, tuple()
+        obligations = [
+            ap2ast[x] for x in node.label.collect(Int)
+            if is_obligation(ap2ast[x])]
+        lbl = node.label.replace_by(ap2ast)
+        lbl = remove_obligations(lbl)
+        return lbl, tuple(obligations)
+
+    states = []
+    for s in v1.states:
+        state_lbl, state_ob = handle_label(s)
+        edges = []
+        for e in s.edges:
+            lbl, ob = handle_label(e)
+            edges.append(Edge(e.target, e.acc_sig, lbl, ob))
+        states.append(State(s.index, s.name, state_lbl, state_ob, s.acc_sig, tuple(edges)))
+    return Automaton(
+        Identifier("v1pp"), v1pp.name, v1pp.tool, v1pp.num_states,
+        v1pp.start, v1pp.ap, v1pp.aptype, v1pp.controllable_ap,
+        tuple(states), v1pp.acceptance_sets, v1pp.acceptance,
+        v1pp.aliases, v1pp.properties, v1pp.headers)
+
+
 def makeV1(aut: Automaton):
     exprs: Mapping[Expr, int] = defaultdict(counter())
     # Collect things that type to Boolean
