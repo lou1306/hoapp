@@ -34,6 +34,9 @@ class Expr:
     def replace_by(self, mapping) -> "Expr":
         return mapping.get(self, self)
 
+    def type_check(self, _) -> Type:
+        raise NotImplementedError()
+
 # Terminals ###################################################################
 
 
@@ -41,14 +44,26 @@ class IntLit(int, Expr):
     def __repr__(self):
         return f"i{super().__repr__()}"
 
+    def type_check(self, _) -> Type:
+        return Type.INT
+
 
 class RealLit(float, Expr):
     def __repr__(self):
         return f"r{super().__repr__()}"
 
+    def type_check(self, _) -> Type:
+        return Type.REAL
+
 
 class Int(int, Expr):
-    pass
+    def type_check(self, aut: "Automaton") -> Type:
+        if aut.aptype is None:
+            return Type.BOOL
+        try:
+            return aut.aptype[int(self)]
+        except KeyError:
+            raise TypeError(f"Unknown AP {self}")
 
 
 class String(str):
@@ -56,7 +71,12 @@ class String(str):
 
 
 class Alias(str, Expr):
-    pass
+    def type_check(self, aut: "Automaton") -> Type:
+        try:
+            alias_def = next(x[1] for x in aut.aliases if x[0] == self)
+            return alias_def.type_check(aut)
+        except StopIteration:
+            raise TypeError(f"Undefined alias {self}")
 
 
 class Boolean(Expr):
@@ -71,6 +91,9 @@ class Boolean(Expr):
 
     def __str__(self):
         return "t" if self else "f"
+
+    def type_check(self, _) -> Type:
+        return Type.BOOL
 
 
 class Identifier(str, Expr):
@@ -92,6 +115,12 @@ class USub(Expr):
         if isinstance(self, t):
             yield self
         yield from self.operand.collect(t)
+
+    def type_check(self, aut: "Automaton") -> Type:
+        op_type = self.operand.type_check(aut)
+        if not op_type <= Type.REAL:
+            raise TypeError(f"Unexpected {op_type} operand in {self}")
+        return op_type
 
 
 @dataclass(frozen=True)
@@ -123,6 +152,20 @@ class LogicOp(Expr):
         ops = tuple(o.replace_by(mapping) for o in self.operands)
         return LogicOp(operands=ops, op=self.op)
 
+    def type_check(self, aut: "Automaton") -> Type:
+        types = [(o, o.type_check(aut)) for o in self.operands]
+        if self.op in "&|":
+            wrong = [(o, t) for o, t in types if not t <= Type.BOOL]
+            result = Type.BOOL
+        elif self.op == "*":
+            wrong = [(o, t) for o, t in types if not t <= Type.REAL]
+            result = (Type.INT if all(t <= Type.INT for _, t in types) else Type.REAL)  # noqa: E501
+        else:
+            raise TypeError(f"Unexpected operator: {self.op}")
+        if wrong:
+            raise TypeError(f"Invalid operands for {self.op}: {wrong}")
+        return result
+
 
 @dataclass(frozen=True)
 class Comparison(Expr):
@@ -142,6 +185,18 @@ class Comparison(Expr):
 
     def replace_by(self, mapping):
         return mapping.get(self, self)
+
+    def type_check(self, aut: "Automaton") -> Type:
+        tl, tr = self.left.type_check(aut), self.right.type_check(aut)
+        if self.op in "+-":
+            error = tl <= Type.BOOL or tr <= Type.BOOL
+            result = (Type.INT if all(t <= Type.INT for t in (tl, tr)) else Type.REAL)  # noqa: E501
+        else:
+            error = tl.subtype_of(Type.REAL) or tr.subtype_of(Type.REAL)
+            result = Type.BOOL
+        if error:
+            raise TypeError(f"Invalid operands for {self.op}: {self}")
+        return result
 
 # Acceptance conditions #######################################################
 
