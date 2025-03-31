@@ -107,9 +107,9 @@ class MakeAst(Transformer):
         if tree[0] is not None:
             label_expr, *obligations = tree[0]
             if obligations and obligations[0] is None:
-                obligations = tuple()
+                obligations = ()
         else:
-            label_expr, obligations = None, tuple()
+            label_expr, obligations = None, ()
         return label_expr, tuple(obligations)
 
     def edge(self, tree):
@@ -172,15 +172,15 @@ class MakeAst(Transformer):
             for k in others:
                 headers.append((k, d[k]))
 
+        tool = tool if isinstance(tool, str) else tuple(tool) if tool else None
         return Automaton(
-            version, name,
-            tool if isinstance(tool, str) else tuple(tool) if tool else None,
-            num_states, tuple(start), aps, tuple(types), tuple(ctrl_aps),
-            tuple(tree[1]),  # states
-            num_acc, acc,
-            tuple(aliases),
-            tuple(properties),
-            tuple(headers))
+            version=version, name=name, tool=tool,
+            num_states=num_states, start=tuple(start), states=tuple(tree[1]),
+            ap=aps, aptype=tuple(types), controllable_ap=tuple(ctrl_aps),
+            acceptance_sets=num_acc, acceptance=acc,
+            aliases=tuple(aliases),
+            properties=tuple(properties),
+            headers=tuple(headers))
 
 
 def parser(start="test_terminals"):

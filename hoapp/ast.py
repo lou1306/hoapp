@@ -309,14 +309,14 @@ class Automaton:
     num_states: int | None
     start: tuple[Int, ...]
     ap: tuple[str, ...]
-    aptype: tuple[Type] | None
-    controllable_ap: tuple[Int, ...]
     states: tuple[State, ...]
     acceptance_sets: int
     acceptance: AccCond
-    aliases: tuple[tuple[str, Expr], ...]
-    properties: tuple[str, ...]
-    headers: tuple[tuple[str, Any], ...]
+    aptype: tuple[Type, ...] = field(default_factory=tuple)
+    controllable_ap: tuple[Int, ...] = field(default_factory=tuple)
+    aliases: tuple[tuple[str, Expr], ...] = field(default_factory=tuple)
+    properties: tuple[str, ...] = field(default_factory=tuple)
+    headers: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
 
     def pprint(self):
         start = (f"Start: {x}" for x in self.start)

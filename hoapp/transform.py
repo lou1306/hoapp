@@ -1,10 +1,10 @@
-
 from collections import defaultdict
+from dataclasses import replace
 from itertools import chain
 from typing import Mapping
 
 from hoapp.ast import (Alias, Automaton, BinaryOp, Edge, Expr, Identifier,
-                       Int, InfixOp, State)
+                       InfixOp, Int, State)
 from hoapp.parser import parser
 
 
@@ -45,13 +45,9 @@ def makeV1pp(v1: Automaton, v1pp: Automaton):
         edges = []
         for e in s.edges:
             lbl, ob = handle_label(e)
-            edges.append(Edge(e.target, e.acc_sig, lbl, ob))
-        states.append(State(s.index, s.name, state_lbl, state_ob, s.acc_sig, tuple(edges)))  # noqa: E501
-    return Automaton(
-        Identifier("v1pp"), v1pp.name, v1pp.tool, v1pp.num_states,
-        v1pp.start, v1pp.ap, v1pp.aptype, v1pp.controllable_ap,
-        tuple(states), v1pp.acceptance_sets, v1pp.acceptance,
-        v1pp.aliases, v1pp.properties, v1pp.headers)
+            edges.append(replace(e, label=lbl, obligations=ob))
+        states.append(replace(s, label=state_lbl, obligations=state_ob, edges=tuple(edges)))  # noqa: E501
+    return replace(v1pp, states=tuple(states))
 
 
 def makeV1(aut: Automaton):
@@ -76,12 +72,11 @@ def makeV1(aut: Automaton):
         edges = []
         for e in s.edges:
             lbl = make_v1_label(e)
-            edges.append(Edge(e.target, label=lbl, acc_sig=e.acc_sig))
-        s1 = State(s.index, s.name, state_lbl, acc_sig=s.acc_sig, edges=tuple(edges))  # noqa: E501
-        states.append(s1)  # noqa: E501
+            edges.append(replace(e, label=lbl, obligations=()))
+        states.append(replace(s, label=state_lbl, obligations=(), edges=tuple(edges)))  # noqa: E501
 
-    aps = tuple(x.pprint() for x in sorted(exprs.keys(), key=lambda x: exprs[x]))  # noqa: E501
-    return Automaton(
-        Identifier("v1"), aut.name, aut.tool, len(states),
-        aut.start, aps, None, tuple(), tuple(states), aut.acceptance_sets,
-        aut.acceptance, tuple(), tuple(), tuple())
+    aps = (x.pprint() for x in sorted(exprs.keys(), key=lambda x: exprs[x]))
+
+    return replace(
+        aut, version=Identifier("v1"), num_states=len(states), ap=tuple(aps),
+        controllable_ap=(), aptype=(), states=tuple(states))
