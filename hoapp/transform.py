@@ -3,8 +3,8 @@ from collections import defaultdict
 from itertools import chain
 from typing import Mapping
 
-from hoapp.ast import (Alias, Automaton, Comparison, Edge, Expr, Identifier,
-                       Int, LogicOp, State)
+from hoapp.ast import (Alias, Automaton, BinaryOp, Edge, Expr, Identifier,
+                       Int, InfixOp, State)
 from hoapp.parser import parser
 
 
@@ -21,12 +21,12 @@ def makeV1pp(v1: Automaton, v1pp: Automaton):
     ap2ast = {Int(i): p.parse(x) for i, x in enumerate(v1.ap)}
 
     def is_obligation(e: Expr):
-        return type(e) is Comparison and e.op == ":="
+        return type(e) is BinaryOp and e.op == ":="
 
     def remove_obligations(e: Expr):
-        if isinstance(e, LogicOp):
+        if isinstance(e, InfixOp):
             ops = tuple(x for x in e.operands if not is_obligation(x))
-            return LogicOp(ops, e.op)
+            return InfixOp(ops, e.op)
         return e
 
     def handle_label(node: State | Edge):
@@ -57,7 +57,7 @@ def makeV1pp(v1: Automaton, v1pp: Automaton):
 def makeV1(aut: Automaton):
     exprs: Mapping[Expr, int] = defaultdict(counter())
     # Collect things that type to Boolean
-    collect = (aut.collect(x) for x in (Comparison, Int, Alias))
+    collect = (aut.collect(x) for x in (BinaryOp, Int, Alias))
     # Make order deterministic
     repl = sorted(set(chain.from_iterable(collect)), key=lambda x: x.pprint())
     # Give AP numbers to these expressions
@@ -67,7 +67,7 @@ def makeV1(aut: Automaton):
         lbl = node.label.replace_by(exprs) if node.label else None
         if node.obligations:
             obls = [o.replace_by(exprs) for o in node.obligations]
-            lbl = LogicOp((lbl, *obls, ), "&") if lbl else LogicOp(tuple(obls), "&")  # noqa: E501
+            lbl = InfixOp((lbl, *obls, ), "&") if lbl else InfixOp(tuple(obls), "&")  # noqa: E501
         return lbl
 
     states = []

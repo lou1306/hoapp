@@ -125,7 +125,7 @@ class USub(Expr):
 
 
 @dataclass(frozen=True)
-class LogicOp(Expr):
+class InfixOp(Expr):
     operands: tuple[Expr, ...]
     op: str
 
@@ -151,7 +151,7 @@ class LogicOp(Expr):
         if self in mapping:
             return mapping[self]
         ops = tuple(o.replace_by(mapping) for o in self.operands)
-        return LogicOp(operands=ops, op=self.op)
+        return InfixOp(operands=ops, op=self.op)
 
     def type_check(self, aut: "Automaton") -> Type:
         types = [(o, o.type_check(aut)) for o in self.operands]
@@ -169,7 +169,7 @@ class LogicOp(Expr):
 
 
 @dataclass(frozen=True)
-class Comparison(Expr):
+class BinaryOp(Expr):
     left: Expr
     op: str
     right: Expr
@@ -235,7 +235,7 @@ class Edge:
     target: Expr
     acc_sig: tuple[int, ...] = field(default_factory=tuple)
     label: Optional[Expr] = None
-    obligations: tuple[Comparison, ...] = field(default_factory=tuple)
+    obligations: tuple[BinaryOp, ...] = field(default_factory=tuple)
 
     def pprint(self):
         ob = ", ".join(x.pprint() for x in self.obligations)
@@ -256,7 +256,7 @@ class State:
     index: int
     name: Optional[str] = None
     label: Optional[Expr] = None
-    obligations: tuple[Comparison, ...] = field(default_factory=tuple)
+    obligations: tuple[BinaryOp, ...] = field(default_factory=tuple)
     acc_sig: tuple[int, ...] = field(default_factory=tuple)
     edges: tuple[Edge, ...] = field(default_factory=tuple)
 

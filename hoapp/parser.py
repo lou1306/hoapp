@@ -4,8 +4,8 @@ from typing import Counter
 from lark import Lark, Token, Transformer
 
 from hoapp.ast import (AccAtom, AccCompound, Alias, Automaton, Boolean,
-                       Comparison, Edge, Expr, Identifier, Int, IntLit,
-                       LogicOp, RealLit, State, String, Type, USub)
+                       BinaryOp, Edge, Expr, Identifier, Int, IntLit,
+                       InfixOp, RealLit, State, String, Type, USub)
 
 grammar_file = resources.files().joinpath("hoapp.lark")
 
@@ -62,33 +62,33 @@ class MakeAst(Transformer):
         return {str(tree[0])[:-1]: tree[1] if len(tree) == 2 else tree[1:]}
 
     def compare(self, tree):
-        return Comparison(tree[0], tree[1].value, tree[2])
+        return BinaryOp(tree[0], tree[1].value, tree[2])
 
     def addsub(self, tree):
         lhs, op, rhs, *tree = tree
-        node = Comparison(lhs, op.value, rhs)
+        node = BinaryOp(lhs, op.value, rhs)
         while tree:
             op, rhs, *tree = tree
-            node = Comparison(node, op.value, rhs)
+            node = BinaryOp(node, op.value, rhs)
         return node
 
     def mul(self, tree):
-        return LogicOp(tuple(tree), "*")
+        return InfixOp(tuple(tree), "*")
 
     def eq(self, tree):
         return self.compare(tree)
 
     def conj(self, tree):
-        return LogicOp(tuple(tree), "&")
+        return InfixOp(tuple(tree), "&")
 
     def disj(self, tree):
-        return LogicOp(tuple(tree), "|")
+        return InfixOp(tuple(tree), "|")
 
     def state_conj(self, tree):
         return self.conj(tuple(tree))
 
     def neg(self, tree):
-        return LogicOp(tuple(tree), "!")
+        return InfixOp(tuple(tree), "!")
 
     def minus(self, tree):
         return USub(tree[0])
@@ -103,9 +103,9 @@ class MakeAst(Transformer):
         return AccCompound(tree[0], "|", tree[1])
 
     def obligation(self, tree):
-        return Comparison(tree[0], ":=", tree[1])
+        return BinaryOp(tree[0], ":=", tree[1])
 
-    def _handle_label(self, tree) -> tuple[Expr | None, tuple[LogicOp, ...]]:
+    def _handle_label(self, tree) -> tuple[Expr | None, tuple[InfixOp, ...]]:
         if tree[0] is not None:
             label_expr, *obligations = tree[0]
             if obligations and obligations[0] is None:
