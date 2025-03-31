@@ -155,7 +155,7 @@ class InfixOp(Expr):
 
     def type_check(self, aut: "Automaton") -> Type:
         types = [(o, o.type_check(aut)) for o in self.operands]
-        if self.op in "&|":
+        if self.op in "&|!":
             wrong = [(o, t) for o, t in types if not t <= Type.BOOL]
             result = Type.BOOL
         elif self.op == "*":
@@ -193,7 +193,7 @@ class BinaryOp(Expr):
             error = tl <= Type.BOOL or tr <= Type.BOOL
             result = (Type.INT if all(t <= Type.INT for t in (tl, tr)) else Type.REAL)  # noqa: E501
         else:
-            error = tl.subtype_of(Type.REAL) or tr.subtype_of(Type.REAL)
+            error = not (tl <= Type.REAL and tr <= Type.REAL)
             result = Type.BOOL
         if error:
             raise TypeError(f"Invalid operands for {self.op}: {self}")
@@ -250,6 +250,12 @@ class Edge:
         for o in self.obligations:
             yield from o.collect(t)
 
+    def type_check(self, aut: "Automaton") -> None:
+        if self.label:
+            self.label.type_check(aut)
+        for o in self.obligations:
+            o.type_check(aut)
+
 
 @dataclass(frozen=True)
 class State:
@@ -272,6 +278,14 @@ class State:
             yield from self.label.collect(t)
         for e in self.edges:
             yield from e.collect(t)
+
+    def type_check(self, aut: "Automaton") -> None:
+        if self.label:
+            self.label.type_check(aut)
+        for o in self.obligations:
+            o.type_check(aut)
+        for e in self.edges:
+            e.type_check(aut)
 
 
 @dataclass(frozen=True)
@@ -316,3 +330,7 @@ class Automaton:
     def collect(self, t):
         for s in self.states:
             yield from s.collect(t)
+
+    def type_check(self) -> None:
+        for s in self.states:
+            s.type_check(self)
