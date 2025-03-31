@@ -22,9 +22,7 @@ class MakeAst(Transformer):
 
     @staticmethod
     def _terminal(typ, value, tok=None):
-        result = typ(value)
-        result.set_tok(tok if tok is not None else value)
-        return result
+        return typ(value, tok=tok)
 
     def ANAME(self, tok: Token):
         return MakeAst._terminal(Alias, tok)
@@ -45,7 +43,7 @@ class MakeAst(Transformer):
         return MakeAst._terminal(RealLit, tok[1:], tok)
 
     def STRING(self, tok):
-        return String(tok[1:-1])
+        return MakeAst._terminal(String, tok[1:-1], tok)
 
     def TYPE(self, tok):
         return Type(tok)

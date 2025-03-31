@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Generator, Optional
 
+import lark
 
-from lark import Token
 
 
 class Type(Enum):
@@ -22,9 +22,6 @@ class Type(Enum):
 class Expr:
     """Expression abstract class, mainly just for type hinting
     """
-    def set_tok(self, tok: Token) -> None:
-        self.tok = tok
-
     def pprint(self, *_) -> str:
         return str(self)
 
@@ -41,7 +38,22 @@ class Expr:
 # Terminals ###################################################################
 
 
-class IntLit(int, Expr):
+class Token:
+    tok: lark.Token
+
+    def __new__(cls, *args, **kwargs):
+        tok = kwargs.pop("tok", None)
+        result = super().__new__(cls, *args, **kwargs)
+        result.tok = tok
+        return result
+
+    def get_pos(self):
+        return Pos(
+            self.tok.line, self.tok.column,
+            self.tok.end_line, self.tok.end_column)
+
+
+class IntLit(Token, int, Expr):
     def __repr__(self):
         return f"i{super().__repr__()}"
 
@@ -57,7 +69,7 @@ class RealLit(float, Expr):
         return Type.REAL
 
 
-class Int(int, Expr):
+class Int(Token, int, Expr):
     def type_check(self, aut: "Automaton") -> Type:
         if aut.aptype is None:
             return Type.BOOL
@@ -67,11 +79,11 @@ class Int(int, Expr):
             raise TypeError(f"Unknown AP {self}")
 
 
-class String(str):
+class String(Token, str):
     pass
 
 
-class Alias(str, Expr):
+class Alias(String, Expr):
     def type_check(self, aut: "Automaton") -> Type:
         try:
             alias_def = next(x[1] for x in aut.aliases if x[0] == self)
@@ -81,8 +93,9 @@ class Alias(str, Expr):
 
 
 class Boolean(Expr):
-    def __init__(self, value):
+    def __init__(self, value, tok):
         self.value = value
+        self.tok = tok
 
     def __bool__(self):
         return self.value
@@ -97,7 +110,7 @@ class Boolean(Expr):
         return Type.BOOL
 
 
-class Identifier(str, Expr):
+class Identifier(String, Expr):
     pass
 
 
