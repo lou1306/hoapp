@@ -325,6 +325,9 @@ class Automaton:
         controllable = (
             f"""controllable-AP: {" ".join(str(x) for x in self.controllable_ap)}"""  # noqa: E501
             if self.controllable_ap else "")
+        aptype = (
+            f"""AP-type: {" ".join(x.value for x in self.aptype)}"""
+            if self.aptype else "")
         header = (
             f"HOA: {self.version}",
             f"name: {self.name}" if self.name else "",
@@ -332,7 +335,7 @@ class Automaton:
             f"States: {self.num_states}" if self.num_states is not None else "",  # noqa: E501
             f"""AP: {len(self.ap)} {" ".join(f'"{x}"' for x in self.ap)}""",
             f"""Acceptance: {self.acceptance_sets} {" ".join(x.pprint() for x in self.acceptance)}""",  # noqa: E501
-            controllable, *start, *aliases, *headers
+            controllable, aptype, *start, *aliases, *headers
         )
         return "".join((
             "\n".join(x for x in header if x),

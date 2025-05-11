@@ -176,7 +176,8 @@ class MakeAst(Transformer):
         return Automaton(
             version=version, name=name, tool=tool,
             num_states=num_states, start=tuple(start), states=tuple(tree[1]),
-            ap=aps, aptype=tuple(types), controllable_ap=tuple(ctrl_aps),
+            ap=aps, aptype=tuple(types or ()),
+            controllable_ap=tuple(ctrl_aps or ()),
             acceptance_sets=num_acc, acceptance=acc,
             aliases=tuple(aliases),
             properties=tuple(properties),
