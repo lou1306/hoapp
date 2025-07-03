@@ -221,6 +221,14 @@ class BinaryOp(Expr):
     def unalias(self, aut: "Automaton") -> "BinaryOp":
         lhs, rhs = self.left.unalias(aut), self.right.unalias(aut)
         return replace(self, left=lhs, right=rhs)
+
+    def compatible_with(self, other: "BinaryOp") -> bool:
+        if self.left != other.left:
+            return True
+        if self.right == other.right:
+            return True
+        return False
+
 # Acceptance conditions #######################################################
 
 
@@ -277,6 +285,9 @@ class Edge:
             self.label.type_check(aut)
         for o in self.obligations:
             o.type_check(aut)
+        for o1, o2 in combinations(self.obligations, 2):
+            if not o1.compatible_with(o2):
+                raise TypeError(f"Incompatible obligations {o1.pprint()}, {o2.pprint()}")  # noqa: E501
 
     def unalias(self, aut: "Automaton") -> "Edge":
         lbl = self.label.unalias(aut) if self.label else self.label
