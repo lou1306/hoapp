@@ -71,12 +71,7 @@ class RealLit(float, Expr):
 
 class Int(Token, int, Expr):
     def type_check(self, aut: "Automaton") -> Type:
-        if aut.aptype is None:
-            return Type.BOOL
-        try:
-            return aut.aptype[int(self)]
-        except KeyError:
-            raise TypeError(f"Unknown AP {self}")
+        return aut.get_type(int(self))
 
 
 class String(Token, str):
@@ -85,8 +80,8 @@ class String(Token, str):
 
 class Alias(String, Expr):
     def type_check(self, aut: "Automaton") -> Type:
-        try:
-            alias_def = next(x[1] for x in aut.aliases if x[0] == self)
+        alias_def = aut.get_alias(self)
+        return alias_def.type_check(aut)
             return alias_def.type_check(aut)
         except StopIteration:
             raise TypeError(f"Undefined alias {self}")
@@ -350,3 +345,17 @@ class Automaton:
     def type_check(self) -> None:
         for s in self.states:
             s.type_check(self)
+
+    def get_alias(self, alias: Alias) -> Expr:
+        try:
+            alias_def = next(x[1] for x in self.aliases if x[0] == alias)
+            return alias_def
+        except StopIteration:
+            raise TypeError(f"Undefined alias {alias}")
+    def get_type(self, ap: int) -> Type:
+        if self.aptype is None or len(self.aptype) == 0:
+            return Type.BOOL
+        try:
+            return self.aptype[ap]
+        except KeyError:
+            raise TypeError(f"Unknown AP {ap} in {self}")
