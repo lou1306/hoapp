@@ -9,7 +9,7 @@ import lark
 class Type(Enum):
     BOOL = "bool"
     INT = "int"
-    REAL = "auto"
+    REAL = "real"
 
     def __le__(self, other) -> bool:
         if not isinstance(other, Type):
