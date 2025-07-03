@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
+from itertools import combinations
 from typing import Any, Generator, Optional
 
 import lark
@@ -34,6 +35,9 @@ class Expr:
 
     def type_check(self, _) -> Type:
         raise NotImplementedError()
+
+    def unalias(self, _) -> "Expr":
+        return self
 
 # Terminals ###################################################################
 
@@ -82,9 +86,9 @@ class Alias(String, Expr):
     def type_check(self, aut: "Automaton") -> Type:
         alias_def = aut.get_alias(self)
         return alias_def.type_check(aut)
-            return alias_def.type_check(aut)
-        except StopIteration:
-            raise TypeError(f"Undefined alias {self}")
+
+    def unalias(self, aut: "Automaton") -> Expr:
+        return aut.get_alias(self)
 
 
 class Boolean(Expr):
@@ -131,6 +135,9 @@ class USub(Expr):
             raise TypeError(f"Unexpected {op_type} operand in {self}")
         return op_type
 
+    def unalias(self, aut: "Automaton") -> "USub":
+        return replace(self, operand=self.operand.unalias(aut))
+
 
 @dataclass(frozen=True)
 class InfixOp(Expr):
@@ -175,6 +182,10 @@ class InfixOp(Expr):
             raise TypeError(f"Invalid operands for {self.op}: {wrong}")
         return result
 
+    def unalias(self, aut: "Automaton") -> "InfixOp":
+        ops = tuple(o.unalias(aut) for o in self.operands)
+        return replace(self, operands=ops)
+
 
 @dataclass(frozen=True)
 class BinaryOp(Expr):
@@ -207,6 +218,9 @@ class BinaryOp(Expr):
             raise TypeError(f"Invalid operands for {self.op}: {self}")
         return result
 
+    def unalias(self, aut: "Automaton") -> "BinaryOp":
+        lhs, rhs = self.left.unalias(aut), self.right.unalias(aut)
+        return replace(self, left=lhs, right=rhs)
 # Acceptance conditions #######################################################
 
 
@@ -264,6 +278,11 @@ class Edge:
         for o in self.obligations:
             o.type_check(aut)
 
+    def unalias(self, aut: "Automaton") -> "Edge":
+        lbl = self.label.unalias(aut) if self.label else self.label
+        obls = tuple(ob.unalias(aut) for ob in self.obligations)
+        return replace(self, label=lbl, obligations=obls)
+
 
 @dataclass(frozen=True)
 class State:
@@ -294,6 +313,12 @@ class State:
             o.type_check(aut)
         for e in self.edges:
             e.type_check(aut)
+
+    def unalias(self, aut: "Automaton") -> "State":
+        lbl = self.label.unalias(aut) if self.label else self.label
+        edges = tuple(e.unalias(aut) for e in self.edges)
+        obls = tuple(ob.unalias(aut) for ob in self.obligations)
+        return replace(self, label=lbl, edges=edges, obligations=obls)
 
 
 @dataclass(frozen=True)
@@ -352,6 +377,10 @@ class Automaton:
             return alias_def
         except StopIteration:
             raise TypeError(f"Undefined alias {alias}")
+
+    def unalias(self) -> "Automaton":
+        states = tuple(s.unalias(self) for s in self.states)
+        return replace(self, states=states, aliases=tuple())
     def get_type(self, ap: int) -> Type:
         if self.aptype is None or len(self.aptype) == 0:
             return Type.BOOL
