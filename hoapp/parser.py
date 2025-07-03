@@ -153,7 +153,7 @@ class MakeAst(Transformer):
             if new_ap is not None:
                 num_aps, *aps = new_ap
                 if len(aps) != num_aps:
-                    raise Exception("AP number mismatch")
+                    raise Exception(f"Wrong number of APs (expected {num_aps}, got {len(aps)})")  # noqa: E501
                 counter_aps = Counter(aps)
                 multiple_aps = [x for x in counter_aps if counter_aps[x] > 1]
                 if multiple_aps:

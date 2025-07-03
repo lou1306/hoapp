@@ -215,7 +215,7 @@ class BinaryOp(Expr):
             error = not (tl <= Type.REAL and tr <= Type.REAL)
             result = Type.BOOL
         if error:
-            raise TypeError(f"Invalid operands for {self.op}: {self}")
+            raise TypeError(f"Invalid operands for {self.pprint()}: {tl}, {tr}")  # noqa: E501
         return result
 
     def unalias(self, aut: "Automaton") -> "BinaryOp":
