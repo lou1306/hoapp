@@ -89,3 +89,4 @@ obligation : (INT|ANAME) ":=" label_expr
 // For internal use ///////////////////////////////////////////////////////////
 ?test_terminals: REALLIT | INTLIT | BOOLEAN | IDENTIFIER
 ?expr_or_obligation: label_expr | obligation
+?aname : ANAME
