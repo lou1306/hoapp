@@ -1,10 +1,10 @@
 from collections import defaultdict
 from dataclasses import replace
 from itertools import chain
-from typing import Mapping
+from typing import Mapping, Optional
 
-from hoapp.ast import (Alias, Automaton, BinaryOp, Edge, Expr, Identifier,
-                       InfixOp, Int, State)
+from hoapp.ast import (Alias, Automaton, BinaryOp, Boolean, Edge, Expr,
+                       Identifier, InfixOp, Int, State, String, Type)
 from hoapp.parser import parser
 
 
@@ -16,16 +16,20 @@ def counter():
     return add_one
 
 
-def makeV1pp(v1: Automaton, v1pp: Automaton):
+def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automaton:  # noqa: E501
     p = parser("expr_or_obligation")
     ap2ast = {Int(i): p.parse(x) for i, x in enumerate(v1.ap)}
 
     def is_obligation(e: Expr):
         return type(e) is BinaryOp and e.op == ":="
 
-    def remove_obligations(e: Expr):
+    def remove_obligations(e: Expr) -> Expr | None:
+        if is_obligation(e):
+            return None
         if isinstance(e, InfixOp):
             ops = tuple(x for x in e.operands if not is_obligation(x))
+            if len(ops) == 0:
+                return Boolean(e.op == "&", None)
             return InfixOp(ops, e.op)
         return e
 
@@ -35,8 +39,7 @@ def makeV1pp(v1: Automaton, v1pp: Automaton):
         obligations = [
             ap2ast[x] for x in node.label.collect(Int)
             if is_obligation(ap2ast[x])]
-        lbl = node.label.replace_by(ap2ast)
-        lbl = remove_obligations(lbl)
+        lbl = remove_obligations(node.label.replace_by(ap2ast))
         return lbl, tuple(obligations)
 
     states = []
@@ -47,7 +50,21 @@ def makeV1pp(v1: Automaton, v1pp: Automaton):
             lbl, ob = handle_label(e)
             edges.append(replace(e, label=lbl, obligations=ob))
         states.append(replace(s, label=state_lbl, obligations=state_ob, edges=tuple(edges)))  # noqa: E501
-    return replace(v1pp, states=tuple(states))
+
+    aps = []
+    p = parser("aname")
+    for x in v1.ap:
+        try:
+            p.parse(x)
+            aps.append(String(x.replace("@", "")))
+        except Exception:
+            continue
+
+    ap_types: tuple[Type, ...] = tuple()
+    if types:
+        ap_types = tuple(types.get(x, Type.BOOL) for x in aps)
+
+    return replace(v1, version=Identifier("v1pp"), ap=tuple(aps), aptype=ap_types, states=tuple(states))  # noqa: E501
 
 
 def makeV1(aut: Automaton):
@@ -79,4 +96,4 @@ def makeV1(aut: Automaton):
 
     return replace(
         aut, version=Identifier("v1"), num_states=len(states), ap=tuple(aps),
-        controllable_ap=(), aptype=(), states=tuple(states))
+        controllable_ap=(), aptype=(), states=tuple(states), aliases=tuple())
