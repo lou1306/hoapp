@@ -270,7 +270,7 @@ class Edge:
     def pprint(self):
         ob = ", ".join(x.pprint() for x in self.obligations)
         ob = f" $ {ob}" if ob else ""
-        label = f"[{self.label.pprint()}{ob}] " if self.label else ""
+        label = f"[{self.label.pprint()}{ob}] " if self.label else f"[t{ob}] "
         sig = f" {{{' '.join(self.acc_sig)}}}" if self.acc_sig else ""
         return f"{label}{self.target}{sig}"
 
@@ -359,6 +359,9 @@ class Automaton:
         aptype = (
             f"""AP-type: {" ".join(x.value for x in self.aptype)}"""
             if self.aptype else "")
+        properties = (
+            f"""properties: {" ".join(self.properties)}"""  # noqa: E501
+            if self.properties else "")
         header = (
             f"HOA: {self.version}",
             f"name: {self.name}" if self.name else "",
@@ -366,7 +369,7 @@ class Automaton:
             f"States: {self.num_states}" if self.num_states is not None else "",  # noqa: E501
             f"""AP: {len(self.ap)} {" ".join(f'"{x}"' for x in self.ap)}""",
             f"""Acceptance: {self.acceptance_sets} {" ".join(x.pprint() for x in self.acceptance)}""",  # noqa: E501
-            controllable, aptype, *start, *aliases, *headers
+            controllable, aptype, *start, *aliases, properties, *headers,
         )
         return "".join((
             "\n".join(x for x in header if x),
