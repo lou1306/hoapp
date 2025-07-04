@@ -1,4 +1,5 @@
 import functools
+import importlib.metadata
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -7,7 +8,8 @@ from typing import Annotated, List
 import typer
 
 from hoapp.ast.automata import Automaton
-from hoapp.util import filt, product as prod
+from hoapp.util import filt
+from hoapp.util import product as prod
 
 from .parser import parse
 
@@ -17,7 +19,7 @@ main = typer.Typer(pretty_exceptions_show_locals=False)
 @main.command()
 def version():
     """Print version information and exit"""
-    print("HOApp v1.0")
+    print(f"HOApp v{importlib.metadata.version("hoapp")}")
 
 
 def catch_errors(debug: bool):
