@@ -1,5 +1,5 @@
 
-from hoapp.ast import InfixOp, USub
+from hoapp.ast.expressions import InfixOp, USub
 from hoapp.parser import mk_parser
 
 

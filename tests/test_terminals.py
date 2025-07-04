@@ -1,7 +1,7 @@
 from lark import UnexpectedToken
 import pytest
 
-from hoapp.ast import IntLit, RealLit
+from hoapp.ast.expressions import IntLit, RealLit
 from hoapp.parser import mk_parser
 
 p = mk_parser("label_expr")
