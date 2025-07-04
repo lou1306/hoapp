@@ -39,6 +39,9 @@ class Expr:
     def unalias(self, _) -> "Expr":
         return self
 
+    def auto_alias(self, _) -> "Expr":
+        return self
+
 # Terminals ###################################################################
 
 
@@ -94,6 +97,11 @@ class Int(Token, int, Expr):
     def type_check(self, aut: "Automaton") -> Type:
         return aut.get_type(int(self))
 
+    def auto_alias(self, aut: "Automaton") -> Alias:
+        try:
+            return Alias(f"@{aut.ap[int(self)]}")
+        except KeyError:
+            raise Exception(f"Invalid ap {self}")
 
 
 class Boolean(Expr):
@@ -143,6 +151,9 @@ class USub(Expr):
     def unalias(self, aut: "Automaton") -> "USub":
         return replace(self, operand=self.operand.unalias(aut))
 
+    def auto_alias(self, aut: "Automaton") -> "USub":
+        return replace(self, operand=self.operand.auto_alias(aut))
+
 
 @dataclass(frozen=True)
 class InfixOp(Expr):
@@ -191,6 +202,10 @@ class InfixOp(Expr):
         ops = tuple(o.unalias(aut) for o in self.operands)
         return replace(self, operands=ops)
 
+    def auto_alias(self, aut: "Automaton") -> "InfixOp":
+        ops = tuple(o.auto_alias(aut) for o in self.operands)
+        return replace(self, operands=ops)
+
 
 @dataclass(frozen=True)
 class BinaryOp(Expr):
@@ -225,6 +240,10 @@ class BinaryOp(Expr):
 
     def unalias(self, aut: "Automaton") -> "BinaryOp":
         lhs, rhs = self.left.unalias(aut), self.right.unalias(aut)
+        return replace(self, left=lhs, right=rhs)
+
+    def auto_alias(self, aut: "Automaton") -> "BinaryOp":
+        lhs, rhs = self.left.auto_alias(aut), self.right.auto_alias(aut)
         return replace(self, left=lhs, right=rhs)
 
     def compatible_with(self, other: "BinaryOp") -> bool:
@@ -299,6 +318,11 @@ class Edge:
         obls = tuple(ob.unalias(aut) for ob in self.obligations)
         return replace(self, label=lbl, obligations=obls)
 
+    def auto_alias(self, aut: "Automaton") -> "Edge":
+        lbl = self.label.auto_alias(aut) if self.label else self.label
+        obls = tuple(ob.auto_alias(aut) for ob in self.obligations)
+        return replace(self, label=lbl, obligations=obls)
+
 
 @dataclass(frozen=True)
 class State:
@@ -334,6 +358,12 @@ class State:
         lbl = self.label.unalias(aut) if self.label else self.label
         edges = tuple(e.unalias(aut) for e in self.edges)
         obls = tuple(ob.unalias(aut) for ob in self.obligations)
+        return replace(self, label=lbl, edges=edges, obligations=obls)
+
+    def auto_alias(self, aut: "Automaton") -> "State":
+        lbl = self.label.auto_alias(aut) if self.label else self.label
+        edges = tuple(e.auto_alias(aut) for e in self.edges)
+        obls = tuple(ob.auto_alias(aut) for ob in self.obligations)
         return replace(self, label=lbl, edges=edges, obligations=obls)
 
 
@@ -400,6 +430,14 @@ class Automaton:
     def unalias(self) -> "Automaton":
         states = tuple(s.unalias(self) for s in self.states)
         return replace(self, states=states, aliases=tuple())
+
+    def auto_alias(self) -> "Automaton":
+        aut = self.unalias()
+        aliases = tuple((f"@{ap}", Int(i)) for i, ap in enumerate(aut.ap))
+        states = tuple(s.auto_alias(self) for s in aut.states)
+        # TODO apply these alias to state/edge labels
+        return replace(aut, states=states, aliases=aliases)
+
     def get_type(self, ap: int) -> Type:
         if self.aptype is None or len(self.aptype) == 0:
             return Type.BOOL
@@ -407,3 +445,4 @@ class Automaton:
             return self.aptype[ap]
         except KeyError:
             raise TypeError(f"Unknown AP {ap} in {self}")
+
