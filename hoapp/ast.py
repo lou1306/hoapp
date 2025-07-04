@@ -73,13 +73,9 @@ class RealLit(float, Expr):
         return Type.REAL
 
 
-class Int(Token, int, Expr):
-    def type_check(self, aut: "Automaton") -> Type:
-        return aut.get_type(int(self))
-
-
 class String(Token, str):
-    pass
+    def pprint(self, *_) -> str:
+        return f'"{self}"'
 
 
 class Alias(String, Expr):
@@ -89,6 +85,15 @@ class Alias(String, Expr):
 
     def unalias(self, aut: "Automaton") -> Expr:
         return aut.get_alias(self)
+
+    def pprint(self, *_) -> str:
+        return str(self)
+
+
+class Int(Token, int, Expr):
+    def type_check(self, aut: "Automaton") -> Type:
+        return aut.get_type(int(self))
+
 
 
 class Boolean(Expr):
@@ -347,12 +352,12 @@ class Automaton:
     controllable_ap: tuple[Int, ...] = field(default_factory=tuple)
     aliases: tuple[tuple[str, Expr], ...] = field(default_factory=tuple)
     properties: tuple[str, ...] = field(default_factory=tuple)
-    headers: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
+    headers: tuple[tuple[str, tuple[Any, ...]], ...] = field(default_factory=tuple)  # noqa: E501
 
     def pprint(self):
         start = (f"Start: {x}" for x in self.start)
         aliases = (f"Alias: {x[0]} {x[1]}" for x in self.aliases)
-        headers = (f"{h}: {v}" for h, v in self.headers)
+        headers = (f"{h}: {' '.join(x if type(x) is str else x.pprint() for x in v)}" for h, v in self.headers)  # noqa: E501
         controllable = (
             f"""controllable-AP: {" ".join(str(x) for x in self.controllable_ap)}"""  # noqa: E501
             if self.controllable_ap else "")
