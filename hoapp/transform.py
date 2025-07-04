@@ -8,14 +8,6 @@ from hoapp.ast import (Alias, Automaton, BinaryOp, Boolean, Edge, Expr,
 from hoapp.parser import mk_parser
 
 
-def counter():
-    def add_one():
-        add_one.x += 1
-        return Int(add_one.x)
-    add_one.x = -1
-    return add_one
-
-
 def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automaton:  # noqa: E501
     p = mk_parser("expr_or_obligation")
     ap2ast = {Int(i): p.parse(x) for i, x in enumerate(v1.ap)}
@@ -89,6 +81,14 @@ def makeV1(aut: Automaton) -> Automaton:
     Returns:
         Automaton: A copy of aut, lowered into HOAv1 format.
     """
+
+    def counter():
+        def add_one():
+            add_one.x += 1
+            return Int(add_one.x)
+        add_one.x = -1
+        return add_one
+
     aut = aut.auto_alias()
     exprs: Mapping[Expr, int] = defaultdict(counter())
     # Collect things that type to Boolean
