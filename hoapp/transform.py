@@ -51,23 +51,45 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
             edges.append(replace(e, label=lbl, obligations=ob))
         states.append(replace(s, label=state_lbl, obligations=state_ob, edges=tuple(edges)))  # noqa: E501
 
-    aps = []
-    p = parser("aname")
-    for x in v1.ap:
-        try:
-            p.parse(x)
-            aps.append(String(x.replace("@", "")))
-        except Exception:
-            continue
+    v1pp_ap = next((h for h in v1.headers if h[0] == "v1pp-AP"), None)
+    if v1pp_ap is not None:
+        aps = tuple(v1pp_ap[1][1:])
+    else:
+        aps_list = []
+        p = mk_parser("aname")
+        for x in v1.ap:
+            try:
+                p.parse(x)
+                aps_list.append(String(x.replace("@", "")))
+            except Exception:
+                continue
+        aps = tuple(aps_list)
 
-    ap_types: tuple[Type, ...] = tuple()
+    ap_types: tuple[Type, ...] = ()
     if types:
         ap_types = tuple(types.get(x, Type.BOOL) for x in aps)
+    else:
+        header = next((h for h in v1.headers if h[0] == "v1pp-AP-type"), None)
+        ap_types = () if header is None else header[1]
 
-    return replace(v1, version=Identifier("v1pp"), ap=tuple(aps), aptype=ap_types, states=tuple(states))  # noqa: E501
+    aliases = tuple((f"@{ap}", Int(i)) for i, ap in enumerate(aps))
+    headers = tuple(h for h in v1.headers if h[0] not in ("v1pp-AP", "v1pp-AP-type"))  # noqa: E501
+
+    return replace(v1, version=Identifier("v1pp"), ap=aps, aliases=aliases,
+                   aptype=ap_types,
+                   states=tuple(states), headers=headers)
 
 
-def makeV1(aut: Automaton):
+def makeV1(aut: Automaton) -> Automaton:
+    """Lower a HOApp automaton into HOAv1.
+
+    Args:
+        aut (Automaton): An automaton in HOApp format
+
+    Returns:
+        Automaton: A copy of aut, lowered into HOAv1 format.
+    """
+    aut = aut.auto_alias()
     exprs: Mapping[Expr, int] = defaultdict(counter())
     # Collect things that type to Boolean
     collect = (aut.collect(x) for x in (BinaryOp, Int, Alias))
@@ -93,7 +115,12 @@ def makeV1(aut: Automaton):
         states.append(replace(s, label=state_lbl, obligations=(), edges=tuple(edges)))  # noqa: E501
 
     aps = (x.pprint() for x in sorted(exprs.keys(), key=lambda x: exprs[x]))
+    v1pp_ap = ("v1pp-AP", tuple([str(len(aut.ap)), *aut.ap]))
+
+    headers = [v1pp_ap]
+    if aut.aptype:
+        headers.append(("v1pp-AP-type", tuple(x.value for x in aut.aptype)))
 
     return replace(
         aut, version=Identifier("v1"), num_states=len(states), ap=tuple(aps),
-        controllable_ap=(), aptype=(), states=tuple(states), aliases=tuple())
+        states=tuple(states), aliases=(), aptype=(), headers=tuple(headers))
