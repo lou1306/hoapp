@@ -5,7 +5,7 @@ from typing import Mapping, Optional
 
 from hoapp.ast import (Alias, Automaton, BinaryOp, Boolean, Edge, Expr,
                        Identifier, InfixOp, Int, State, String, Type)
-from hoapp.parser import parser
+from hoapp.parser import mk_parser
 
 
 def counter():
@@ -17,7 +17,7 @@ def counter():
 
 
 def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automaton:  # noqa: E501
-    p = parser("expr_or_obligation")
+    p = mk_parser("expr_or_obligation")
     ap2ast = {Int(i): p.parse(x) for i, x in enumerate(v1.ap)}
 
     def is_obligation(e: Expr):

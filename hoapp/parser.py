@@ -1,4 +1,5 @@
 from importlib import resources
+from pathlib import Path
 from typing import Counter
 
 from lark import Lark, Token, Transformer
@@ -185,7 +186,17 @@ class MakeAst(Transformer):
             headers=tuple(headers))
 
 
-def parser(start="test_terminals"):
+def mk_parser(start="test_terminals"):
     with open(grammar_file) as grammar:
         parser = Lark(grammar, start=start, parser="lalr", transformer=MakeAst())  # noqa: E501
     return parser
+
+
+__HOAPP_PARSER = mk_parser("automaton")
+
+
+def parse(filename: Path) -> Automaton:
+    with open(filename) as hoa_file:
+        aut = __HOAPP_PARSER.parse(hoa_file.read())
+    aut.type_check()
+    return aut

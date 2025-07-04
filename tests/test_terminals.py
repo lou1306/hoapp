@@ -2,9 +2,9 @@ from lark import UnexpectedToken
 import pytest
 
 from hoapp.ast import IntLit, RealLit
-from hoapp.parser import parser
+from hoapp.parser import mk_parser
 
-p = parser("label_expr")
+p = mk_parser("label_expr")
 
 
 def test_intlit() -> None:
