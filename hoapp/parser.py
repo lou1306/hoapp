@@ -170,7 +170,8 @@ class MakeAst(Transformer):
             types = types or d.get("AP-type")
             others = (k for k in d if k not in canonical_headers)
             for k in others:
-                headers.append((k, d[k]))
+                value = d[k] if isinstance(d, (list, tuple)) else (d[k], )
+                headers.append((k, value))
 
         tool = tool if isinstance(tool, str) else tuple(tool) if tool else None
         return Automaton(
