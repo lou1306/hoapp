@@ -12,6 +12,7 @@ INTLIT.1: /i0|i[1-9][0-9]*/
 REALLIT.1: /r[0-9]*(\.[0-9]*)?/
 BOOLEAN.1: "t" | "f"
 TOOL_HEADER.2 : "tool:"
+APTYPE_HEADER.2 : "AP-type:"
 LOGIC_OP: "&"|"|"
 LOGIC_NEG: "!"
 
@@ -25,7 +26,7 @@ format_version : "HOA:" IDENTIFIER
 !header_item : "States:" INT
     | "Start:" state_conj
     | "AP:" INT STRING*
-    | "AP-type:" TYPE+
+    | APTYPE_HEADER TYPE+
     | "Alias:" ANAME label_expr
     | "Acceptance:" INT acceptance_cond
     | "acc-name:" IDENTIFIER (BOOLEAN|INT|IDENTIFIER)*
