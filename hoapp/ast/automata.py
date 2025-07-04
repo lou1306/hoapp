@@ -1,11 +1,14 @@
 
 from dataclasses import dataclass, field, replace
 from itertools import combinations
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
+
+import z3  # type: ignore
 
 from hoapp.ast.acceptance import AccCond
 from hoapp.ast.ast import Type
-from hoapp.ast.expressions import Alias, BinaryOp, Expr, Identifier, Int
+from hoapp.ast.expressions import (Alias, BinaryOp, Expr, Identifier, Int,
+                                   expr_z3)
 
 
 @dataclass(frozen=True)
@@ -169,3 +172,57 @@ class Automaton:
             return self.aptype[ap]
         except KeyError:
             raise TypeError(f"Unknown AP {ap} in {self}")
+
+    def incomplete_states(self) -> Iterator[int]:
+        solver = z3.Solver()
+        for s in self.states:
+            if s.label is not None:
+                solver.reset()
+                solver.add(~expr_z3(s.label, self))
+                if solver.check() == z3.sat:
+                    yield s.index
+                else:
+                    continue
+            solver.reset()
+            exprs = (expr_z3(e.label, self) for e in s.edges if e.label is not None)  # noqa: E501
+            solver.add(~z3.Or(*exprs))
+            if solver.check() == z3.sat:
+                yield s.index
+
+    def nondet_states(self) -> Iterator[int]:
+        solver = z3.Solver()
+        for s in self.states:
+            if s.label is not None:
+                if len(s.edges) > 1:
+                    yield s.index
+                else:
+                    continue
+            no_edge_labels = all(e.label is None for e in s.edges)
+            if no_edge_labels:
+                raise Exception(f"Implicit labelling unsupported (State: {s.index})")  # noqa: E501
+            exprs = [expr_z3(e.label, self) for e in s.edges if e.label is not None]  # noqa: E501
+            for a, b in combinations(exprs, 2):
+                solver.reset()
+                solver.add(a, b)
+                if solver.check() == z3.sat:
+                    yield s.index
+
+    def is_deterministic(self) -> bool:
+        """Test the automaton for determinism.
+
+        Returns:
+            bool: True if the automaton is deterministic.
+        """
+        if len(self.start) > 1:
+            return False
+        x = next(self.nondet_states(), None)
+        return x is None
+
+    def is_complete(self) -> bool:
+        """Test the automaton for completeness.
+
+        Returns:
+            bool: True iff the automaton is complete.
+        """
+        x = next(self.incomplete_states(), None)
+        return x is None
