@@ -3,8 +3,8 @@ from dataclasses import replace
 from itertools import chain
 from typing import Mapping, Optional
 
-from hoapp.ast import (Alias, Automaton, BinaryOp, Boolean, Edge, Expr,
-                       Identifier, InfixOp, Int, State, String, Type)
+from hoapp.ast.ast import (Alias, Automaton, BinaryOp, Boolean, Edge, Expr,
+                           Identifier, InfixOp, Int, State, String, Type)
 from hoapp.parser import mk_parser
 
 

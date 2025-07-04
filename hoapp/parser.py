@@ -4,9 +4,9 @@ from typing import Counter
 
 from lark import Lark, Token, Transformer
 
-from hoapp.ast import (AccAtom, AccCompound, Alias, Automaton, Boolean,
-                       BinaryOp, Edge, Expr, Identifier, Int, IntLit,
-                       InfixOp, RealLit, State, String, Type, USub)
+from hoapp.ast.ast import (AccAtom, AccCompound, Alias, Automaton, BinaryOp,
+                           Boolean, Edge, Expr, Identifier, InfixOp, Int,
+                           IntLit, RealLit, State, String, Type, USub)
 
 grammar_file = resources.files().joinpath("hoapp.lark")
 
