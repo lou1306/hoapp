@@ -53,7 +53,12 @@ def check(
     def fn():
         aut = parse(filename)
         aut.type_check()
-        aut = properties(aut)
+        properties = []
+        if aut.is_complete():
+            properties.append("complete")
+        if aut.is_deterministic():
+            properties.append("deterministic")
+        aut = replace(aut, properties=tuple(properties))
         print(aut.pprint())
 
     catch_errors(debug=debug)(fn)()
@@ -87,12 +92,3 @@ def product(
         print(aut.pprint())
 
     catch_errors(debug=debug)(fn)()
-
-
-def properties(aut: Automaton) -> Automaton:
-    properties = []
-    if aut.is_complete():
-        properties.append("complete")
-    if aut.is_deterministic():
-        properties.append("deterministic")
-    return replace(aut, properties=tuple(properties))
