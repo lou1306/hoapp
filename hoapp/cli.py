@@ -3,11 +3,12 @@ import importlib.metadata
 import sys
 from dataclasses import replace
 from pathlib import Path
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 
 import typer
 
-from hoapp.ast.automata import Automaton
+import hoapp.util as util
+from hoapp.ast.ast import Type
 from hoapp.util import filt
 from hoapp.util import product as prod
 
@@ -89,6 +90,25 @@ def product(
     def fn():
         aut1, aut2 = parse(filename1), parse(filename2)
         aut = prod(aut1, aut2)
+        print(aut.pprint())
+
+    catch_errors(debug=debug)(fn)()
+
+
+@main.command()
+def ltl2tgba(
+    formula: Annotated[str, typer.Option("--formula", "-f")],
+    ap_type: Annotated[Optional[List[str]], typer.Option("--type", "-t")] = None,  # noqa: E501
+    debug: Annotated[bool, typer.Option(help="Add debug information.")] = False
+):
+    def parse_cli_type(cli_type: str) -> tuple[str, Type]:
+        name, typ = cli_type.split("=")
+        return name.strip(), Type(typ.strip())
+
+    def fn():
+        print(formula)
+        types = dict(parse_cli_type(t) for t in ap_type)
+        aut = util.ltl2tgba(formula, types)
         print(aut.pprint())
 
     catch_errors(debug=debug)(fn)()

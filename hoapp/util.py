@@ -1,8 +1,8 @@
-
 import os
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
 
+from hoapp.ast.ast import Type
 from hoapp.ast.automata import Automaton
 from hoapp.parser import mk_parser
 from hoapp.transform import makeV1, makeV1pp
@@ -71,3 +71,11 @@ def product(aut1: Automaton, aut2: Automaton) -> Automaton:
     os.remove(tmp1.name)
     os.remove(tmp2.name)
     return new_aut
+
+
+def ltl2tgba(formula: str, types: dict[str, Type]) -> Automaton:
+    output = check_output(["ltl2tgba", "-S", "-f", formula]).decode()
+    autv1 = mk_parser("automaton").parse(output)
+    aut = makeV1pp(autv1, types)
+    aut.type_check()
+    return aut
