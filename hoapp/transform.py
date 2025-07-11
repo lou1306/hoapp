@@ -74,6 +74,7 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
 
     ap_types: tuple[Type, ...] = ()
     if types:
+        aps = tuple(types.keys())
         ap_types = tuple(types.get(x, Type.BOOL) for x in aps)
     else:
         header = next((h for h in v1.headers if h[0] == "v1pp-AP-type"), None)

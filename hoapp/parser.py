@@ -154,7 +154,9 @@ class MakeAst(Transformer):
             if new_start is not None:
                 start.append(new_start)
             new_ap = d.get("AP")
-            if new_ap is not None:
+            if new_ap == 0:
+                num_aps, aps = 0, ()
+            elif new_ap is not None:
                 num_aps, *aps = new_ap
                 if len(aps) != num_aps:
                     raise Exception(f"Wrong number of APs (expected {num_aps}, got {len(aps)})")  # noqa: E501
