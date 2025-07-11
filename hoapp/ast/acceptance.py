@@ -2,11 +2,13 @@ from dataclasses import dataclass
 
 
 class AccCond:
+    """Abstract acceptance condition base class."""
     pass
 
 
 @dataclass(frozen=True)
 class AccAtom(AccCond):
+    """"Atomic" acceptance condition: `Inf(...)` or `Fin(...)`."""
     inf: bool
     neg: bool
     acc_set: int
@@ -19,6 +21,7 @@ class AccAtom(AccCond):
 
 @dataclass(frozen=True)
 class AccCompound(AccCond):
+    """Conjunction or disjunction of two conditions `left` and `right`."""
     left: AccCond
     op: str
     right: AccCond

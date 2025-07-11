@@ -14,6 +14,7 @@ grammar_file = resources.files().joinpath("hoapp.lark")
 
 
 class MakeAst(Transformer):
+    """Main transformer to turn Lark's tree into AST objects."""
 
     @staticmethod
     def _id(tree):
@@ -198,6 +199,16 @@ __HOAPP_PARSER = mk_parser("automaton")
 
 
 def parse(filename: Path) -> Automaton:
+    """Parse a .hoa file into an Automaton object.
+
+    Also performs type checking.
+
+    Args:
+        filename (Path): Path to a .hoa file
+
+    Returns:
+        Automaton: The automaton contained in `filename`.
+    """
     with open(filename) as hoa_file:
         aut = __HOAPP_PARSER.parse(hoa_file.read())
     aut.type_check()

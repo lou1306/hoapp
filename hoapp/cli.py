@@ -23,6 +23,11 @@ def version():
 
 
 def catch_errors(debug: bool):
+    """_summary_
+
+    Args:
+        debug (bool): Indicates whether the user set the `--debug` flag.
+    """
     def wrapper1(f):
         @functools.wraps(f)
         def wrapper2(*args, **kwargs):
@@ -60,7 +65,7 @@ def autfilt(
     args: List[str],
     debug: Annotated[bool, typer.Option(help="Add debug information.")] = False
 ):
-    """Wraps Spot's autfilt"""
+    """Wrap Spot's autfilt"""
 
     def fn():
         aut = parse(filename)
@@ -75,6 +80,7 @@ def product(
     filename2: Annotated[Path, typer.Argument(help="Path to a HOApp automaton.")],  # noqa: E501
     debug: Annotated[bool, typer.Option(help="Add debug information.")] = False
 ):
+    """Compute the product of two hoapp automata (if it exists)"""
     def fn():
         aut1, aut2 = parse(filename1), parse(filename2)
         aut = prod(aut1, aut2)

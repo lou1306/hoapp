@@ -10,6 +10,20 @@ from hoapp.parser import mk_parser
 
 
 def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automaton:  # noqa: E501
+    """Turn a (lowered) HOA automaton into HOApp.
+
+    Args:
+        v1 (Automaton): A HOA automaton.
+
+        types (Optional[dict[str, Type]], optional): A mapping from AP names \
+            to their data types.
+            If None is given, the procedure looks for a `v1pp-AP-type` header.
+            Lacking that, all APs are assumed to be of Boolean type. \
+            Defaults to None.
+
+    Returns:
+        Automaton: A HOApp version of `v1`.
+    """
     p = mk_parser("expr_or_obligation")
     ap2ast = {Int(i): p.parse(x) for i, x in enumerate(v1.ap)}
 
@@ -77,7 +91,7 @@ def makeV1(aut: Automaton) -> Automaton:
     """Lower a HOApp automaton into HOAv1.
 
     Args:
-        aut (Automaton): An automaton in HOApp format
+        aut (Automaton): An automaton in HOApp format.
 
     Returns:
         Automaton: A copy of aut, lowered into HOAv1 format.

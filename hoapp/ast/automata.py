@@ -96,6 +96,7 @@ class State:
 
 @dataclass(frozen=True)
 class Automaton:
+    """A HOApp automaton."""
     version: Identifier
     name: str | None
     tool: str | tuple[str, str] | None
@@ -144,10 +145,26 @@ class Automaton:
             yield from s.collect(t)
 
     def type_check(self) -> None:
+        """Type-check the automaton.
+
+        Raises:
+            TypeError: Raised if a type error is found.
+        """
         for s in self.states:
             s.type_check(self)
 
     def get_alias(self, alias: Alias) -> Expr:
+        """Return the definition for an alias.
+
+        Args:
+            alias (Alias): An alias AST node.
+
+        Raises:
+            TypeError: Raised if the alias is not found.
+
+        Returns:
+            Expr: The alias' definition.
+        """
         try:
             alias_def = next(x[1] for x in self.aliases if x[0] == alias)
             return alias_def
@@ -155,6 +172,7 @@ class Automaton:
             raise TypeError(f"Undefined alias {alias}")
 
     def unalias(self) -> "Automaton":
+        """Replace every alias in the automaton by its definition."""
         states = tuple(s.unalias(self) for s in self.states)
         return replace(self, states=states, aliases=tuple())
 
@@ -174,6 +192,7 @@ class Automaton:
             raise TypeError(f"Unknown AP {ap} in {self}")
 
     def incomplete_states(self) -> Iterator[int]:
+        """Return states that make the automaton incomplete."""
         solver = z3.Solver()
         for s in self.states:
             if s.label is not None:
@@ -190,6 +209,7 @@ class Automaton:
                 yield s.index
 
     def nondet_states(self) -> Iterator[int]:
+        """Return states that make the automaton nondeterministic."""
         solver = z3.Solver()
         for s in self.states:
             if s.label is not None:

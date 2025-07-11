@@ -8,7 +8,21 @@ from hoapp.parser import mk_parser
 from hoapp.transform import makeV1, makeV1pp
 
 
-def filt(aut: Automaton, args: list[str]):
+def filt(aut: Automaton, args: list[str]) -> str:
+    """Lower `aut` and invoke `autfilt` on the lowered automaton.
+
+    Args:
+        aut (Automaton): A HOApp automaton
+        args (list[str]): Arguments for `autfilt`
+
+    Raises:
+        FileNotFoundError: Raised if `autfilt` is not in the system PATH.
+        CalledProcessError": Raised if `autfilt` exits with a status \
+        other than 0.
+
+    Returns:
+        str: The output from `autfilt`.
+    """
     autv1 = makeV1(aut)
     with NamedTemporaryFile("w", delete=False) as tmp:
         tmp.write(autv1.pprint())
@@ -17,7 +31,19 @@ def filt(aut: Automaton, args: list[str]):
     return out
 
 
-def product(aut1: Automaton, aut2: Automaton):
+def product(aut1: Automaton, aut2: Automaton) -> Automaton:
+    """Compute the product of `aut1` and `aut2`.
+
+    Args:
+        aut1 (Automaton): A HOApp automaton.
+        aut2 (Automaton): A HOApp automaton.
+
+    Raises:
+        TypeError: Raised if the product does not exist.
+
+    Returns:
+        Automaton: The product automaton.
+    """
     a1v1, a2v1 = makeV1(aut1), makeV1(aut2)
 
     # Test for type compatibility
