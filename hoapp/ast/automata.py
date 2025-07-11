@@ -19,6 +19,8 @@ class Edge:
     obligations: tuple[BinaryOp, ...] = field(default_factory=tuple)
 
     def pprint(self):
+        if self.label is None and not self.obligations:
+            return f"{self.target}"
         ob = ", ".join(x.pprint() for x in self.obligations)
         ob = f" $ {ob}" if ob else ""
         label = f"[{self.label.pprint()}{ob}] " if self.label else f"[t{ob}] "
