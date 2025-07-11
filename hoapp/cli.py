@@ -68,14 +68,14 @@ def check(
 @main.command()
 def autfilt(
     filename: Annotated[Path, typer.Argument(help=strings.hoapp_path_help)],
-    args: List[str],
+    args: Annotated[List[str], typer.Argument()] = None,
     debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
 ):
     """Wrap Spot's autfilt."""
 
     def fn():
         aut = parse(filename)
-        filt(aut, args)
+        print(filt(aut, args or ()))
 
     catch_errors(debug=debug)(fn)()
 
