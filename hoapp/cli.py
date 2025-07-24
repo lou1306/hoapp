@@ -7,12 +7,13 @@ from typing import Annotated, List, Optional
 
 import typer
 
+from hoapp.transform import makeV1pp
 import hoapp.util as util
 import hoapp.strings as strings
 from hoapp.ast.ast import Type
 from hoapp.util import filt
 from hoapp.util import product as prod
-from .parser import parse
+from .parser import mk_parser, parse
 
 main = typer.Typer(pretty_exceptions_show_locals=False)
 
@@ -68,15 +69,20 @@ def check(
 @main.command()
 def autfilt(
     filename: Annotated[Path, typer.Argument(help=strings.hoapp_path_help)],
-    args: Annotated[List[str], typer.Argument()] = None,
+    args: Annotated[Optional[List[str]], typer.Argument()] = None,
+    hoapp: Annotated[bool, typer.Option(help=strings.hoapp_help)] = False,
     debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
 ):
     """Wrap Spot's autfilt."""
 
     def fn():
         aut = parse(filename)
-        print(filt(aut, args or ()))
-
+        str_v1 = filt(aut, args or ())
+        if hoapp:
+            aut_v1 = mk_parser("automaton").parse(str_v1)
+            print(makeV1pp(aut_v1).pprint())
+        else:
+            print(str_v1)
     catch_errors(debug=debug)(fn)()
 
 
