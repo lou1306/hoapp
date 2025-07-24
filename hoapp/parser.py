@@ -171,7 +171,11 @@ class MakeAst(Transformer):
             new_alias = d.get("Alias")
             if new_alias is not None:
                 aliases.append((new_alias[0], new_alias[1]))
-            properties.extend(d.get("properties", []))
+            pp = d.get("properties", [])
+            if isinstance(pp, str):
+                properties.append(pp)
+            else:
+                properties.extend(pp)
             ctrl_aps = ctrl_aps or d.get("controllable-AP")
             types = types or d.get("AP-type")
             others = (k for k in d if k not in canonical_headers)
