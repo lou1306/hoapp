@@ -32,11 +32,11 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
 
     def remove_obligations(e: Expr) -> Expr | None:
         if is_obligation(e):
-            return None
+            return Boolean(True, None)
         if isinstance(e, InfixOp):
-            ops = tuple(x for x in e.operands if not is_obligation(x))
-            if len(ops) == 0:
-                return Boolean(e.op == "&", None)
+            ops = tuple(remove_obligations(x)for x in e.operands)
+            # if len(ops) == 0:
+            #     return Boolean(e.op in "&!", None)
             return InfixOp(ops, e.op)
         return e
 
@@ -79,12 +79,13 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
     else:
         header = next((h for h in v1.headers if h[0] == "v1pp-AP-type"), None)
         ap_types = () if header is None else header[1]
+        ap_types = [Type(t) for t in ap_types]
 
     aliases = tuple((f"@{ap}", Int(i)) for i, ap in enumerate(aps))
     headers = tuple(h for h in v1.headers if h[0] not in ("v1pp-AP", "v1pp-AP-type"))  # noqa: E501
 
     return replace(v1, version=Identifier("v1pp"), ap=aps, aliases=aliases,
-                   aptype=ap_types,
+                   aptype=tuple(ap_types),
                    states=tuple(states), headers=headers)
 
 
