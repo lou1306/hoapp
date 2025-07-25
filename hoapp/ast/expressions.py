@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Generator
 
-from .ast import Token, Type, Pos
+from .ast import Token, Type
 
 if TYPE_CHECKING:
     from .automata import Automaton
