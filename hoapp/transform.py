@@ -3,7 +3,7 @@ from dataclasses import replace
 from itertools import chain
 from typing import Mapping, Optional
 
-from hoapp.ast.automata import Automaton, Edge, State
+from hoapp.ast.automata import Automaton, Label
 from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier,
                                    InfixOp, Int, String, Type)
 from hoapp.parser import mk_parser
@@ -34,29 +34,29 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
         if is_obligation(e):
             return Boolean(True, None)
         if isinstance(e, InfixOp):
-            ops = tuple(remove_obligations(x)for x in e.operands)
+            ops = tuple(remove_obligations(x) for x in e.operands)
             # if len(ops) == 0:
             #     return Boolean(e.op in "&!", None)
-            return InfixOp(ops, e.op)
+            return InfixOp(tuple(o for o in ops if o), e.op)
         return e
 
-    def handle_label(node: State | Edge):
-        if node.label is None:
-            return None, tuple()
+    def handle_label(label: Label | None) -> Label | None:
+        if label is None or label.guard is None:
+            return None
         obligations = [
-            ap2ast[x] for x in node.label.collect(Int)
+            ap2ast[x] for x in label.guard.collect(Int)
             if is_obligation(ap2ast[x])]
-        lbl = remove_obligations(node.label.replace_by(ap2ast))
-        return lbl, tuple(obligations)
+        lbl = remove_obligations(label.guard.replace_by(ap2ast))
+        return Label(guard=lbl, obligations=tuple(obligations))
 
     states = []
     for s in v1.states:
-        state_lbl, state_ob = handle_label(s)
+        state_lbl = handle_label(s.label)
         edges = []
         for e in s.edges:
-            lbl, ob = handle_label(e)
-            edges.append(replace(e, label=lbl, obligations=ob))
-        states.append(replace(s, label=state_lbl, obligations=state_ob, edges=tuple(edges)))  # noqa: E501
+            lbl = handle_label(e.label)
+            edges.append(replace(e, label=lbl))
+        states.append(replace(s, label=state_lbl, edges=tuple(edges)))  # noqa: E501
 
     v1pp_ap = next((h for h in v1.headers if h[0] == "v1pp-AP"), None)
     if v1pp_ap is not None:
@@ -115,21 +115,14 @@ def makeV1(aut: Automaton) -> Automaton:
     # Give AP numbers to these expressions
     _ = [exprs[x] for x in repl]
 
-    def make_v1_label(node: State | Edge):
-        lbl = node.label.replace_by(exprs) if node.label else None
-        if node.obligations:
-            obls = [o.replace_by(exprs) for o in node.obligations]
-            lbl = InfixOp((lbl, *obls, ), "&") if lbl else InfixOp(tuple(obls), "&")  # noqa: E501
-        return lbl
-
     states = []
     for s in aut.states:
-        state_lbl = make_v1_label(s)
+        state_lbl = s.label.make_v1(exprs) if s.label else None
         edges = []
         for e in s.edges:
-            lbl = make_v1_label(e)
-            edges.append(replace(e, label=lbl, obligations=()))
-        states.append(replace(s, label=state_lbl, obligations=(), edges=tuple(edges)))  # noqa: E501
+            lbl = e.label.make_v1(exprs) if e.label else None
+            edges.append(replace(e, label=lbl) if lbl else e)
+        states.append(replace(s, label=state_lbl, edges=tuple(edges)))  # noqa: E501
 
     aps = (x.pprint() for x in sorted(exprs.keys(), key=lambda x: exprs[x]))
     v1pp_ap = ("v1pp-AP", tuple([str(len(aut.ap)), *aut.ap]))
