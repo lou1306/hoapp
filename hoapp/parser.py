@@ -177,6 +177,8 @@ class MakeAst(Transformer):
             else:
                 properties.extend(pp)
             ctrl_aps = ctrl_aps or d.get("controllable-AP")
+            if isinstance(ctrl_aps, int):
+                ctrl_aps = [ctrl_aps]
             types = types or d.get("AP-type")
             others = (k for k in d if k not in canonical_headers)
             for k in others:
