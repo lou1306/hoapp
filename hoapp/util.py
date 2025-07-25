@@ -57,6 +57,12 @@ def product(aut1: Automaton, aut2: Automaton) -> Automaton:
     if incompatibles:
         fmt = "\n".join(f"{ap} ({t1}, {t2})" for ap, t1, t2 in incompatibles)
         raise TypeError(f"Incompatible types for the following variables:\n{fmt}")  # noqa: E501
+    con1 = set(x for i, x in enumerate(aut1.ap) if i in aut1.controllable_ap)
+    con2 = set(x for i, x in enumerate(aut2.ap) if i in aut2.controllable_ap)
+    mismatching = (con1 | con2) - (con1 & con2)
+    if mismatching:
+        fmt = ", ".join(sorted(mismatching))
+        raise TypeError(f"Incompatible controllability for the following variables: {fmt}")  # noqa: E501
 
     with NamedTemporaryFile("w", delete=False) as tmp1:
         tmp1.write(a1v1.pprint())
