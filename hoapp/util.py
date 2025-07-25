@@ -72,6 +72,7 @@ def product(aut1: Automaton, aut2: Automaton) -> Automaton:
     new_aut = mk_parser("automaton").parse(autfilt)
 
     new_aut = makeV1pp(new_aut, types1 | types2).auto_alias()
+    new_aut = new_aut.fix_obligations()
     new_aut.type_check()
 
     os.remove(tmp1.name)

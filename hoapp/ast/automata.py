@@ -1,14 +1,14 @@
 
 from dataclasses import dataclass, field, replace
-from itertools import combinations
+from itertools import combinations, groupby
 from typing import Any, Iterator, Optional
 
 import z3  # type: ignore
 
 from hoapp.ast.acceptance import AccCond
 from hoapp.ast.ast import Type
-from hoapp.ast.expressions import (Alias, BinaryOp, Expr, Identifier, Int,
-                                   expr_z3)
+from hoapp.ast.expressions import (Alias, BinaryOp, Expr, Identifier, InfixOp,
+                                   Int, expr_z3)
 
 
 @dataclass(frozen=True)
@@ -41,6 +41,14 @@ class Edge:
         for o1, o2 in combinations(self.obligations, 2):
             if not o1.compatible_with(o2):
                 raise TypeError(f"Incompatible obligations {o1.pprint()}, {o2.pprint()}")  # noqa: E501
+
+    def fix_obligations(self) -> "Edge":
+        for o1, o2 in combinations(self.obligations, 2):
+            if not o1.compatible_with(o2):
+                s = State(0, label=self.label, obligations=self.obligations)
+                s1 = s.fix_obligations()
+                return replace(self, label=s1.label, obligations=s1.obligations)  # noqa: E501
+        return self
 
     def unalias(self, aut: "Automaton") -> "Edge":
         lbl = self.label.unalias(aut) if self.label else self.label
@@ -82,6 +90,25 @@ class State:
             o.type_check(aut)
         for e in self.edges:
             e.type_check(aut)
+
+    def fix_obligations(self) -> "State":
+        incomp = set(
+            o for oo in combinations(self.obligations, 2)
+            if not oo[0].compatible_with(oo[1])
+            for o in oo)
+        if not incomp:
+            return self
+        grouped_incomp = groupby(incomp, lambda x: x.left)
+        obls = [o for o in self.obligations if o not in incomp]
+        for _, group in grouped_incomp:
+            bin_ops = list(group)
+            obls.append(bin_ops[0])
+            rhss = (op.right for op in bin_ops)
+            constraints = (BinaryOp(r1, "==", r2) for r1, r2 in combinations(rhss, 2))  # noqa: E501
+        lbl = (
+            InfixOp(tuple([self.label, *constraints]), "&") if self.label else
+            InfixOp(tuple(constraints), "&"))
+        return replace(self, label=lbl, obligations=obls)
 
     def unalias(self, aut: "Automaton") -> "State":
         lbl = self.label.unalias(aut) if self.label else self.label
@@ -184,6 +211,13 @@ class Automaton:
         states = tuple(s.auto_alias(self) for s in aut.states)
         # TODO apply these alias to state/edge labels
         return replace(aut, states=states, aliases=aliases)
+
+    def fix_obligations(self) -> "Automaton":
+        states = []
+        for s in self.states:
+            edges = tuple(e.fix_obligations() for e in s.edges)
+            states.append(replace(s.fix_obligations(), edges=edges))
+        return replace(self, states=states)
 
     def get_type(self, ap: int) -> Type:
         if self.aptype is None or len(self.aptype) == 0:
