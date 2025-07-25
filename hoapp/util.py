@@ -1,4 +1,5 @@
 import os
+from dataclasses import replace
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
 
@@ -8,7 +9,7 @@ from hoapp.parser import mk_parser
 from hoapp.transform import makeV1, makeV1pp
 
 
-def filt(aut: Automaton, args: list[str]) -> str:
+def filt(aut: Automaton, args: list[str]) -> tuple[Automaton, str]:
     """Lower `aut` and invoke `autfilt` on the lowered automaton.
 
     Args:
@@ -24,11 +25,14 @@ def filt(aut: Automaton, args: list[str]) -> str:
         str: The output from `autfilt`.
     """
     autv1 = makeV1(aut)
-    with NamedTemporaryFile("w", delete=False) as tmp:
-        tmp.write(autv1.pprint())
-    out = check_output(["autfilt", tmp.name, *args]).decode()
-    os.remove(tmp.name)
-    return out
+    str_in = autv1.pprint().encode("utf-8")
+
+    out = check_output(["autfilt", *args], input=str_in).decode()
+    prop: list[str] = []
+    for ln in out.splitlines():
+        if ln.startswith("properties: "):
+            prop.extend(p.strip() for p in ln.split(":")[1].split())
+    return replace(autv1, properties=tuple(prop)), out
 
 
 def product(aut1: Automaton, aut2: Automaton) -> Automaton:

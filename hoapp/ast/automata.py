@@ -202,6 +202,13 @@ class Automaton:
         for s in self.states:
             yield from s.collect(t)
 
+    def copy_ap_info(self, aut: "Automaton") -> "Automaton":
+        v1pp_ap = ("v1pp-AP", tuple([str(len(aut.ap)), *aut.ap]))
+        headers = [*self.headers, v1pp_ap]
+        if aut.aptype:
+            headers.append(("v1pp-AP-type", tuple(x.value for x in aut.aptype)))  # noqa:E501
+        return replace(self, headers=tuple(headers))
+
     def type_check(self) -> None:
         """Type-check the automaton.
 

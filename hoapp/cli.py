@@ -7,15 +7,18 @@ from typing import Annotated, List, Optional
 
 import typer
 
-from hoapp.transform import makeV1pp
-import hoapp.util as util
 import hoapp.strings as strings
+import hoapp.util as util
 from hoapp.ast.ast import Type
+from hoapp.ast.automata import Automaton
+from hoapp.transform import makeV1pp
 from hoapp.util import filt
 from hoapp.util import product as prod
-from .parser import mk_parser, parse
+
+from .parser import parse, parse_stream, parse_string
 
 main = typer.Typer(pretty_exceptions_show_locals=False)
+filename_argument = typer.Argument(help=strings.hoapp_path_help, allow_dash=True)  # noqa: E501
 
 
 @main.command()
@@ -46,21 +49,29 @@ def catch_errors(debug: bool):
     return wrapper1
 
 
+def handle_filename(filename: Path) -> Automaton:
+    if filename.name == "-":
+        stream = sys.stdin
+        return parse_stream(stream)
+    else:
+        return parse(filename)
+
+
 @main.command()
 def check(
-    filename: Annotated[Path, typer.Argument(help=strings.hoapp_path_help)],
+    filename: Annotated[Path, filename_argument],
     debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
 ):
     """Parse and type-check a HOApp automaton."""
     def fn():
-        aut = parse(filename)
+        aut = handle_filename(filename)
         aut.type_check()
-        properties = []
+        properties = [*aut.properties]
         if aut.is_complete():
             properties.append("complete")
         if aut.is_deterministic():
             properties.append("deterministic")
-        aut = replace(aut, properties=tuple(properties))
+        aut = replace(aut, properties=tuple(set(properties)))
         print(aut.pprint())
 
     catch_errors(debug=debug)(fn)()
@@ -68,7 +79,7 @@ def check(
 
 @main.command()
 def autfilt(
-    filename: Annotated[Path, typer.Argument(help=strings.hoapp_path_help)],
+    filename: Annotated[Path, filename_argument],
     args: Annotated[Optional[List[str]], typer.Argument()] = None,
     hoapp: Annotated[bool, typer.Option(help=strings.hoapp_help)] = False,
     debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
@@ -76,10 +87,9 @@ def autfilt(
     """Wrap Spot's autfilt."""
 
     def fn():
-        aut = parse(filename)
-        str_v1 = filt(aut, args or ())
+        aut = handle_filename(filename)
+        aut_v1, str_v1 = filt(aut, args or ())
         if hoapp:
-            aut_v1 = mk_parser("automaton").parse(str_v1)
             print(makeV1pp(aut_v1).pprint())
         else:
             print(str_v1)

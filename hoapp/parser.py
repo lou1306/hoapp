@@ -1,6 +1,6 @@
 from importlib import resources
 from pathlib import Path
-from typing import Counter
+from typing import Counter, TextIO
 
 from lark import Lark, Token, Transformer
 
@@ -206,6 +206,16 @@ def mk_parser(start="test_terminals"):
 __HOAPP_PARSER = mk_parser("automaton")
 
 
+def parse_string(s: str) -> Automaton:
+    aut = __HOAPP_PARSER.parse(s)
+    return aut
+
+
+def parse_stream(stream: TextIO) -> Automaton:
+    aut = __HOAPP_PARSER.parse(stream.read())
+    return aut
+
+
 def parse(filename: Path) -> Automaton:
     """Parse a .hoa file into an Automaton object.
 
@@ -218,6 +228,4 @@ def parse(filename: Path) -> Automaton:
         Automaton: The automaton contained in `filename`.
     """
     with open(filename) as hoa_file:
-        aut = __HOAPP_PARSER.parse(hoa_file.read())
-    aut.type_check()
-    return aut
+        return parse_stream(hoa_file)
