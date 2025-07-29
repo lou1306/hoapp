@@ -6,7 +6,7 @@ from lark import Lark, Token, Transformer
 
 from hoapp.ast.acceptance import AccAtom, AccCompound
 from hoapp.ast.automata import Automaton, Edge, Label, State
-from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier,
+from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Identifier,
                                    InfixOp, Int, IntLit, RealLit, String, Type,
                                    USub)
 
@@ -107,14 +107,14 @@ class MakeAst(Transformer):
     def obligation(self, tree):
         return BinaryOp(tree[0], ":=", tree[1])
 
-    def _handle_label(self, tree) -> Label:
+    def _handle_label(self, tree) -> Label | None:
         if tree[0] is not None:
             guard, *obligations = tree[0]
             if obligations and obligations[0] is None:
                 obligations = ()
+            return Label(guard=guard, obligations=tuple(obligations))
         else:
-            guard, obligations = None, ()
-        return Label(guard=guard, obligations=tuple(obligations))
+            return None
 
     def edge(self, tree):
         lbl = self._handle_label(tree)
@@ -126,7 +126,7 @@ class MakeAst(Transformer):
         lbl = self._handle_label(tree[0])
         _, index, name, acc_sig = tree[0]
         edges = tuple(tree[1:])
-        return State(index, name, lbl, acc_sig, edges)
+        return State(int(index), name, lbl, acc_sig, edges)
 
     def automaton(self, tree):
         canonical_headers = (
@@ -180,15 +180,18 @@ class MakeAst(Transformer):
             if isinstance(ctrl_aps, int):
                 ctrl_aps = [ctrl_aps]
             types = types or d.get("AP-type")
+            types = [Type(t) for t in types or ()]
             others = (k for k in d if k not in canonical_headers)
             for k in others:
                 value = d[k] if isinstance(d, (list, tuple)) else (d[k], )
                 headers.append((k, value))
 
         tool = tool if isinstance(tool, str) else tuple(tool) if tool else None
+        states = sorted(tree[1], key=lambda x: x.index)
+
         return Automaton(
             version=version, name=name, tool=tool,
-            num_states=num_states, start=tuple(start), states=tuple(tree[1]),
+            num_states=num_states, start=tuple(start), states=tuple(states),
             ap=aps, aptype=tuple(types or ()),
             controllable_ap=tuple(ctrl_aps or ()),
             acceptance_sets=num_acc, acceptance=acc,
