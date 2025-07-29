@@ -75,6 +75,7 @@ class Label:
             if not o1.compatible_with(o2):
                 raise TypeError(f"Incompatible obligations {o1.pprint()}, {o2.pprint()}")  # noqa: E501
 
+
 @dataclass(frozen=True)
 class Edge:
     target: Expr
@@ -85,6 +86,13 @@ class Edge:
         sig = f" {{{' '.join(str(x) for x in self.acc_sig)}}}" if self.acc_sig else ""  # noqa: E501
         label = self.label.pprint() if self.label else ""
         return f"{label}{self.target}{sig}"
+
+    def get_target(self) -> int:
+        match self.target:
+            case Int(x):
+                return int(x)
+            case _:
+                raise TypeError(f"Unsupported state conjunction {self.target}")
 
     def collect(self, t):
         if self.label:
