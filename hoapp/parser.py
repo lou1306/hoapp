@@ -74,11 +74,17 @@ class MakeAst(Transformer):
             node = BinaryOp(node, op.value, rhs)
         return node
 
+    def ltl_fgx(self, tree):
+        return InfixOp(tuple(tree[1:]), tree[0])
+
     def mul(self, tree):
         return InfixOp(tuple(tree), "*")
 
     def eq(self, tree):
         return self.compare(tree)
+
+    def until(self, tree):
+        return BinaryOp(tree[0], "U", tree[1])
 
     def conj(self, tree):
         return InfixOp(tuple(tree), "&")
@@ -137,7 +143,8 @@ class MakeAst(Transformer):
         all_headers = Counter(x for d in dicts for x in d.keys())
         multiple_headers = (
             x for x in all_headers if all_headers[x] > 1
-            and x not in ("Start", "Alias", "properties"))
+            and x not in
+            ("Start", "Alias", "properties", "assume", "guarantee"))
         err_msg = "\n".join(
             f"Too many '{x}:' headers." for x in multiple_headers)
         if err_msg:

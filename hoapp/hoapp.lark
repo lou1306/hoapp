@@ -33,6 +33,8 @@ format_version : "HOA:" IDENTIFIER
     | TOOL_HEADER STRING STRING?
     | "name:" STRING
     | "properties:" IDENTIFIER*
+    | "assume:" label_expr
+    | "guarantee:" label_expr
     | HEADERNAME (BOOLEAN|INT|STRING|IDENTIFIER)*
 
 // Acceptance conditions
@@ -49,16 +51,19 @@ acceptance_disj : acceptance_cond "|" acceptance_cond
 BANG : "!"
 INF_FIN : "Inf"|"Fin"
 
+
 ?state_conj : INT ("&" INT)*
 
 // Expressions
+// Really these also contain LTL, but it's a trade secret
 
-?label_expr : disj
+?label_expr : until
 
-?base_expr : BOOLEAN | INTLIT | REALLIT | INT | ANAME | neg | minus
+?base_expr : BOOLEAN | INTLIT | REALLIT | INT | ANAME | neg | minus | ltl_fgx
              | "(" label_expr ")"
             //  | label_expr LOGIC_OP label_expr
 
+?until : disj ("U" disj)?
 ?disj : conj ("|" conj)*
 ?conj : eq ("&" eq)*
 ?eq : compare (EQOP compare)?
@@ -67,11 +72,13 @@ INF_FIN : "Inf"|"Fin"
 ?mul : base_expr ("*" base_expr)*
 neg : "!" base_expr
 minus: "-" base_expr
+ltl_fgx : FGX base_expr
 
 EQOP : "=="|"!="
 CMPOP : "<"|"<="|">"|">="
 SUMOP : "+"|"-"
 TYPE : "int" | "bool" | "real"
+FGX :  "F" | "G" | "X"
 
 // Body ///////////////////////////////////////////////////////////////////////
 

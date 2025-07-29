@@ -1,20 +1,18 @@
 
-from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from itertools import combinations, groupby
 from typing import Any, Iterator, Mapping, Optional
 
-import z3  # type: ignore
-import pyvmt.model  # type: ignore
-
 import pysmt.shortcuts as smt  # type: ignore
+import pyvmt.model  # type: ignore
 import pyvmt.shortcuts as vmt  # type: ignore
-from pysmt.fnode import FNode
+import z3  # type: ignore
+from pysmt.fnode import FNode  # type: ignore
 
 from hoapp.ast.acceptance import AccAtom, AccCompound, AccCond
 from hoapp.ast.ast import Type
-from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier, InfixOp,
-                                   Int, expr_vmt, expr_z3, SMT_TYPES)
+from hoapp.ast.expressions import (SMT_TYPES, Alias, BinaryOp, Boolean, Expr,
+                                   Identifier, InfixOp, Int, expr_vmt, expr_z3)
 
 
 @dataclass(frozen=True)
@@ -194,6 +192,23 @@ class Automaton:
     properties: tuple[str, ...] = field(default_factory=tuple)
     headers: tuple[tuple[str, tuple[Any, ...]], ...] = field(default_factory=tuple)  # noqa: E501
 
+    def __getitem__(self, key: object):
+        if not isinstance(key, str):
+            raise KeyError(key)
+        result = []
+        for header, val in self.headers:
+            if header == key:
+                result.append(val)
+        if not result:
+            raise KeyError(key)
+        return result
+
+    def get(self, key: object, default: Any = None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def pprint(self):
         start = (f"Start: {x}" for x in self.start)
         aliases = (f"Alias: {x[0]} {x[1]}" for x in self.aliases)
@@ -239,6 +254,10 @@ class Automaton:
         Raises:
             TypeError: Raised if a type error is found.
         """
+        for header in ("assume", "guarantee"):
+            for tup in self.get(header, ()):
+                for ltl in tup:
+                    ltl.type_check(self)
         for s in self.states:
             s.type_check(self)
 
@@ -269,7 +288,6 @@ class Automaton:
         aut = self.unalias()
         aliases = tuple((f"@{ap}", Int(i)) for i, ap in enumerate(aut.ap))
         states = tuple(s.auto_alias(self) for s in aut.states)
-        # TODO apply these alias to state/edge labels
         return replace(aut, states=states, aliases=aliases)
 
     def fix_obligations(self) -> "Automaton":
@@ -346,11 +364,9 @@ class Automaton:
     def to_vmt(self) -> tuple[pyvmt.model.Model, FNode]:
         model = pyvmt.model.Model()
         state = model.create_state_var("state", smt.INT)
-        # aps = []
         for i, _ in enumerate(self.ap):
             typ = SMT_TYPES[self.get_type(i)]
             model.create_state_var(f"AP_{i}", typ)
-            # aps.append(v)  # just want to be sure that I retain the order
 
         vmt_aps = model.get_state_vars()[1:]
 
@@ -397,4 +413,14 @@ class Automaton:
                     raise TypeError(acc)
 
         prop = smt.And([acc_vmt(a) for a in self.acceptance])
+        guarantees = [expr_vmt(x, self, vmt_aps)
+                      for xx in self.get("guarantee", ())
+                      for x in xx]
+        if guarantees:
+            prop = smt.And([prop, *guarantees])
+        assumes = [expr_vmt(x, self, vmt_aps)
+                   for xx in self.get("assume", ())
+                   for x in xx]
+        if assumes:
+            prop = smt.Implies(smt.And(*assumes), prop)
         return model, prop

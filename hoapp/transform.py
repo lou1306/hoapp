@@ -58,9 +58,9 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
             edges.append(replace(e, label=lbl))
         states.append(replace(s, label=state_lbl, edges=tuple(edges)))  # noqa: E501
 
-    v1pp_ap = next((h for h in v1.headers if h[0] == "v1pp-AP"), None)
+    v1pp_ap = next(iter(v1.get("v1pp-AP")), None)
     if v1pp_ap is not None:
-        aps = tuple(v1pp_ap[1][1:])
+        aps = v1pp_ap
     else:
         aps_list = []
         p = mk_parser("aname")
@@ -77,16 +77,17 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
         aps = tuple(types.keys())
         ap_types = tuple(types.get(x, Type.BOOL) for x in aps)
     else:
-        header = next((h for h in v1.headers if h[0] == "v1pp-AP-type"), None)
-        ap_types = () if header is None else header[1]
-        ap_types = [Type(t) for t in ap_types]
+        types_header = next(iter(v1.get("v1pp-AP-type")), ())
+        ap_types = tuple(Type(t) for t in types_header)
 
     aliases = tuple((f"@{ap}", Int(i)) for i, ap in enumerate(aps))
-    headers = tuple(h for h in v1.headers if h[0] not in ("v1pp-AP", "v1pp-AP-type"))  # noqa: E501
+    headers = tuple(
+        (h[0].replace("v1pp-", ""), h[1])
+        for h in v1.headers
+        if h[0] not in ("v1pp-AP", "v1pp-AP-type"))  # noqa: E501
 
     return replace(v1, version=Identifier("v1pp"), ap=aps, aliases=aliases,
-                   aptype=tuple(ap_types),
-                   states=tuple(states), headers=headers)
+                   aptype=ap_types, states=tuple(states), headers=headers)
 
 
 def makeV1(aut: Automaton) -> Automaton:
@@ -130,6 +131,10 @@ def makeV1(aut: Automaton) -> Automaton:
     headers = [v1pp_ap]
     if aut.aptype:
         headers.append(("v1pp-AP-type", tuple(x.value for x in aut.aptype)))
+    for header in ("assume", "guarantee"):
+        for lst in aut.get(header, ()):
+            for ltl in lst:
+                headers.append((f"v1pp-{header}", (f'"{ltl.pprint()}"', )))
 
     return replace(
         aut, version=Identifier("v1"), num_states=len(states), ap=tuple(aps),

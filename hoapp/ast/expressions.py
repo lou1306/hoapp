@@ -2,6 +2,7 @@ from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Generator
 
 import pysmt.shortcuts as smt  # type: ignore
+import pyvmt.shortcuts as vmt  # type: ignore
 
 from .ast import Token, Type
 
@@ -141,8 +142,8 @@ class InfixOp(Expr):
             raise Exception(f"expected tuple, got {type(self.operands)}")
 
     def pprint(self, paren=False):
-        if self.op == "!":
-            return f"!{self.operands[0].pprint(True)}"
+        if self.op in ("!XFG"):
+            return f"{self.op}{self.operands[0].pprint(True)}"
         x = f" {self.op} ".join(
             x.pprint(len(self.operands) > 1)
             for x in self.operands)
@@ -162,7 +163,7 @@ class InfixOp(Expr):
 
     def type_check(self, aut: "Automaton") -> Type:
         types = [(o, o.type_check(aut)) for o in self.operands]
-        if self.op in "&|!":
+        if self.op in "&|!XFG":
             wrong = [(o, t) for o, t in types if not t <= Type.BOOL]
             result = Type.BOOL
         elif self.op == "*":
@@ -171,7 +172,8 @@ class InfixOp(Expr):
         else:
             raise TypeError(f"Unexpected operator: {self.op}")
         if wrong:
-            raise TypeError(f"Invalid operands for {self.op}: {wrong}")
+            raise TypeError(f"Invalid operands for {self.op}: {wrong}"
+                            f" (expected '{result.value}')")
         return result
 
     def unalias(self, aut: "Automaton") -> "InfixOp":
@@ -207,11 +209,16 @@ class BinaryOp(Expr):
         if self.op in "+-":
             error = tl <= Type.BOOL or tr <= Type.BOOL
             result = (Type.INT if all(t <= Type.INT for t in (tl, tr)) else Type.REAL)  # noqa: E501
+        elif self.op == "U":
+            error = not (tl <= Type.BOOL and tr <= Type.BOOL)
+            result = Type.BOOL
         else:
             error = not (tl <= Type.REAL and tr <= Type.REAL)
             result = Type.BOOL
         if error:
-            raise TypeError(f"Invalid operands for {self.pprint()}: {tl}, {tr}")  # noqa: E501
+            raise TypeError(
+                f"Invalid operands for {self.pprint()}: {tl}, {tr}"
+                f" (expected '{result.value}')")
         return result
 
     def unalias(self, aut: "Automaton") -> "BinaryOp":
@@ -237,7 +244,8 @@ Z3_OPS = {
 SMT_OPS = {
     "&": smt.And, "|": smt.Or, "+": smt.Plus, "-": smt.Minus, "*": smt.Times,
     "==": smt.EqualsOrIff, "!=": smt.NotEquals, "<": smt.LT, "<=": smt.LE,
-    ">": smt.GE, ">=": smt.GT}
+    ">": smt.GE, ">=": smt.GT, "F": vmt.F, "G": vmt.G, "X": vmt.X,
+    "U": vmt.U}
 
 
 Z3_TYPES = {Type.INT: z3.Int, Type.BOOL: z3.Bool, Type.REAL: z3.Real}
