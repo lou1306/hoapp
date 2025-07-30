@@ -2,10 +2,15 @@ import functools
 import importlib.metadata
 import sys
 from dataclasses import replace
+from io import StringIO
 from pathlib import Path
+from shutil import which
+from subprocess import run
 from typing import Annotated, List, Optional
 
+import pysmt.shortcuts as smt  # type: ignore
 import typer
+from pyvmt.ltl_encoder import ltl_encode  # type: ignore
 
 import hoapp.strings as strings
 import hoapp.util as util
@@ -15,7 +20,7 @@ from hoapp.transform import makeV1pp
 from hoapp.util import filt
 from hoapp.util import product as prod
 
-from .parser import parse, parse_stream, parse_string
+from .parser import parse, parse_stream
 
 main = typer.Typer(pretty_exceptions_show_locals=False)
 filename_argument = typer.Argument(help=strings.hoapp_path_help, allow_dash=True)  # noqa: E501
@@ -74,6 +79,59 @@ def check(
         aut = replace(aut, properties=tuple(set(properties)))
         print(aut.pprint())
 
+    catch_errors(debug=debug)(fn)()
+
+
+@main.command()
+def empty(
+    filename: Annotated[Path, filename_argument],
+    cex: Annotated[bool, typer.Option(help=strings.cex_help)] = False,
+    debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
+):
+    """Check an automaton for emptiness. Requires `ic3ia`."""
+    aut = handle_filename(filename)
+    aut.type_check()
+    model, prop = aut.to_vmt()
+    m = ltl_encode(model, smt.Not(prop))
+
+    ic3ia = which("ic3ia")
+    if not ic3ia:
+        raise FileNotFoundError("'ic3ia' not found")
+    model_stream = StringIO()
+
+    # We do this by hand since pyvmt has some issues with safe verdicts
+    # (And because it allows us to use rlive!)
+    m.serialize(model_stream, properties=m.get_all_properties())
+    solver_in = model_stream.getvalue()
+    proc = run([ic3ia, "-rlive", "-n", "0", "-w"], capture_output=True,
+               input=solver_in, text=True, check=True)
+    lines = proc.stdout.splitlines()
+    is_safe = lines[-1].strip() == "safe"
+    if is_safe:
+        print(f"{proc.stdout if debug else ''}empty")
+        sys.exit(0)
+    if cex:
+        for ln in lines:
+            stripped = ln.strip()
+            if stripped == "search stats:" and not debug:
+                break
+            print(stripped)
+    print(f"{proc.stdout if debug else ''}not empty")
+
+
+@main.command()
+def vmt(
+    filename: Annotated[Path, filename_argument],
+    daggify: Annotated[bool, typer.Option(help=strings.daggify_help)] = False,
+    debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
+):
+    """Print VMT translation of automaton and quit."""
+    def fn():
+        aut = handle_filename(filename)
+        aut.type_check()
+        model, prop = aut.to_vmt()
+        model.add_ltl_property(prop)
+        model.serialize(sys.stdout, daggify=daggify)
     catch_errors(debug=debug)(fn)()
 
 

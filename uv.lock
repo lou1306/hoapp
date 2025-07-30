@@ -29,6 +29,7 @@ version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "lark" },
+    { name = "pyvmt" },
     { name = "typer" },
     { name = "z3-solver" },
 ]
@@ -42,6 +43,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "lark", specifier = ">=1.2.2" },
+    { name = "pyvmt", path = "vendor/pyvmt-0.0.4-py3-none-any.whl" },
     { name = "typer", specifier = ">=0.16.0" },
     { name = "z3-solver", specifier = ">=4.15.1.0" },
 ]
@@ -153,6 +155,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pysmt"
+version = "0.9.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/4d/a972e021606eb56828b339842ec523d164879c4b62dcd2c5e4404355d10e/PySMT-0.9.6.tar.gz", hash = "sha256:e101927b65d66f7929ce9bfc4ad2d1e6914449575807fa37e9c810934c8a5d09", size = 262806, upload-time = "2024-06-24T19:01:57.852Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/79/0a/4e0369b2a4ce40a5b2e2bdf09e7be32e39eb0511a9ca7eb3f921d4cc03af/PySMT-0.9.6-py2.py3-none-any.whl", hash = "sha256:41e9afed77d4d21930ee3abfd77b4c28189e579225d8def96e9fab6059a7ffce", size = 326100, upload-time = "2024-06-24T19:01:55.204Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.5"
 source = { registry = "https://pypi.org/simple" }
@@ -166,6 +177,20 @@ sdist = { url = "https://files.pythonhosted.org/packages/ae/3c/c9d525a414d506893
 wheels = [
     { url = "https://files.pythonhosted.org/packages/30/3d/64ad57c803f1fa1e963a7946b6e0fea4a70df53c1a7fed304586539c2bac/pytest-8.3.5-py3-none-any.whl", hash = "sha256:c69214aa47deac29fad6c2a4f590b9c4a9fdb16a403176fe154b79c0b4d4d820", size = 343634, upload-time = "2025-03-02T12:54:52.069Z" },
 ]
+
+[[package]]
+name = "pyvmt"
+version = "0.0.4"
+source = { path = "vendor/pyvmt-0.0.4-py3-none-any.whl" }
+dependencies = [
+    { name = "pysmt" },
+]
+wheels = [
+    { filename = "pyvmt-0.0.4-py3-none-any.whl", hash = "sha256:ccdfe673839a8c84b1a3cdb6b20b66514f48cf8133c10a1e8018cbdd6c391e62" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pysmt" }]
 
 [[package]]
 name = "rich"

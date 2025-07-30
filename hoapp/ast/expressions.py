@@ -1,6 +1,8 @@
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Generator
 
+import pysmt.shortcuts as smt  # type: ignore
+
 from .ast import Token, Type
 
 if TYPE_CHECKING:
@@ -232,7 +234,14 @@ Z3_OPS = {
     "&": z3.And, "|": z3.Or, "+": z3.Sum, "-": sub, "*": z3.Product,
     "==": eq, "!=": ne, "<": lt, "<=": le, ">": ge, ">=": gt}
 
+SMT_OPS = {
+    "&": smt.And, "|": smt.Or, "+": smt.Plus, "-": smt.Minus, "*": smt.Times,
+    "==": smt.EqualsOrIff, "!=": smt.NotEquals, "<": smt.LT, "<=": smt.LE,
+    ">": smt.GE, ">=": smt.GT}
+
+
 Z3_TYPES = {Type.INT: z3.Int, Type.BOOL: z3.Bool, Type.REAL: z3.Real}
+SMT_TYPES = {Type.INT: smt.INT, Type.BOOL: smt.BOOL, Type.REAL: smt.REAL}
 
 
 def expr_z3(expr: Expr, aut: "Automaton") -> z3.ExprRef:
@@ -259,5 +268,38 @@ def expr_z3(expr: Expr, aut: "Automaton") -> z3.ExprRef:
         case Alias(x):
             alias_def = aut.get_alias(x)
             return expr_z3(alias_def, aut)
+        case _:
+            raise Exception(f"Unexpected {expr}")
+
+
+def expr_vmt(expr: Expr, aut: "Automaton", aps: list):
+    match expr:
+        case IntLit(x):
+            return smt.Int(x)
+        case RealLit(x):
+            return smt.Real(float(x))
+        case Int(x):
+            return aps[int(x)]
+        case Boolean(value=v):
+            return smt.TRUE() if bool(v) else smt.FALSE()
+        case USub(x):
+            return -expr_vmt(x, aut, aps)
+        case InfixOp(op="!", operands=ops):
+            return smt.Not(expr_vmt(ops[0], aut, aps))
+        case InfixOp(op=op, operands=ops):
+            recurse = (expr_vmt(o, aut, aps) for o in ops)
+            if any(o.type_check(aut) == Type.REAL for o in ops):
+                recurse = (smt.ToReal(x) for x in recurse)
+            return SMT_OPS[op](*recurse)
+        case BinaryOp(left=lhs, right=rhs, op=op):
+            exprs = expr_vmt(lhs, aut, aps), expr_vmt(rhs, aut, aps)
+            operands = (
+                tuple(smt.ToReal(x) for x in exprs)
+                if any(o.type_check(aut) == Type.REAL for o in (lhs, rhs))
+                else exprs)
+            return SMT_OPS[op](*operands)
+        case Alias(x):
+            alias_def = aut.get_alias(x)
+            return expr_vmt(alias_def, aut, aps)
         case _:
             raise Exception(f"Unexpected {expr}")

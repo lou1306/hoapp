@@ -1,14 +1,20 @@
 
+from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from itertools import combinations, groupby
 from typing import Any, Iterator, Mapping, Optional
 
 import z3  # type: ignore
+import pyvmt.model  # type: ignore
 
-from hoapp.ast.acceptance import AccCond
+import pysmt.shortcuts as smt  # type: ignore
+import pyvmt.shortcuts as vmt  # type: ignore
+from pysmt.fnode import FNode
+
+from hoapp.ast.acceptance import AccAtom, AccCompound, AccCond
 from hoapp.ast.ast import Type
-from hoapp.ast.expressions import (Alias, BinaryOp, Expr, Identifier, InfixOp,
-                                   Int, expr_z3)
+from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier, InfixOp,
+                                   Int, expr_vmt, expr_z3, SMT_TYPES)
 
 
 @dataclass(frozen=True)
@@ -65,6 +71,16 @@ class Label:
         ob = f" $ {ob}" if ob else ""
         label = f"[{self.guard.pprint()}{ob}] " if self.guard else f"[t{ob}] "
         return f"{label}"
+
+    def to_vmt(self, aut: "Automaton", aps: list):
+        clauses = []
+        if self.guard:
+            clauses.append(expr_vmt(self.guard, aut, aps))
+        for o in self.obligations:
+            lhs = vmt.Next(expr_vmt(o.left, aut, aps))
+            rhs = expr_vmt(o.right, aut, aps)
+            clauses.append(smt.Equals(lhs, rhs))
+        return smt.And(*clauses) if clauses else smt.TRUE()
 
     def type_check(self, aut: "Automaton"):
         if self.guard:
@@ -326,3 +342,59 @@ class Automaton:
         """
         x = next(self.incomplete_states(), None)
         return x is None
+
+    def to_vmt(self) -> tuple[pyvmt.model.Model, FNode]:
+        model = pyvmt.model.Model()
+        state = model.create_state_var("state", smt.INT)
+        # aps = []
+        for i, _ in enumerate(self.ap):
+            typ = SMT_TYPES[self.get_type(i)]
+            model.create_state_var(f"AP_{i}", typ)
+            # aps.append(v)  # just want to be sure that I retain the order
+
+        vmt_aps = model.get_state_vars()[1:]
+
+        acc_vars = []
+        for x in range(self.acceptance_sets):
+            acc_var = model.create_state_var(f"ACC_{x}", smt.BOOL)
+            model.add_init(smt.Not(acc_var))
+            acc_vars.append(acc_var)
+
+        trans = []
+        for s in self.states:
+            lbl = s.label.to_vmt(self, vmt_aps) if s.label else None
+            cur_state = smt.Equals(state, smt.Int(s.index))
+            for e in s.edges:
+                e_lbl = lbl or (
+                    e.label.to_vmt(self, vmt_aps) if e.label else smt.TRUE())
+                tgt_index = e.get_target()
+                tgt_state = smt.Equals(vmt.Next(state), smt.Int(tgt_index))  # noqa: E501
+
+                acc_sig = set([*(s.acc_sig or ()), *(e.acc_sig or ())])
+                # Update acceptance condition bits
+                next_acc = [
+                    vmt.Next(a) if i in acc_sig else smt.Not(vmt.Next(a))
+                    for i, a in enumerate(acc_vars)]
+                trans.append(smt.And(cur_state, e_lbl, tgt_state, *next_acc))
+
+        model.add_init(smt.Or(*(smt.Equals(state, smt.Int(int(x))) for x in self.start)))  # noqa: E501
+        model.add_trans(smt.Or(*trans))
+
+        def acc_vmt(acc: AccCond):
+            match acc:
+                case Boolean(value=v):
+                    return smt.TRUE() if v else smt.FALSE()
+                case AccAtom(inf=acc_inf, neg=acc_neg, acc_set=x):
+                    # Was the set negated?
+                    var = smt.Not(acc_vars[x]) if acc_neg else acc_vars[x]
+                    # Is it Inf (GF) or Fin (!FG)
+                    prop = vmt.G(vmt.F(var))
+                    return prop if acc_inf else vmt.F(vmt.G(smt.Not(var)))
+                case AccCompound(left=lhs, op=op, right=rhs):
+                    l, r = acc_vmt(lhs), acc_vmt(rhs)
+                    return smt.And(l, r) if op == "&" else smt.Or(l, r)
+                case _:
+                    raise TypeError(acc)
+
+        prop = smt.And([acc_vmt(a) for a in self.acceptance])
+        return model, prop
