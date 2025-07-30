@@ -139,7 +139,7 @@ def vmt(
 def autfilt(
     filename: Annotated[Path, filename_argument],
     args: Annotated[Optional[List[str]], typer.Argument()] = None,
-    hoapp: Annotated[bool, typer.Option(help=strings.hoapp_help)] = False,
+    v1pp: Annotated[bool, typer.Option(help=strings.v1pp_help)] = False,
     debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
 ):
     """Wrap Spot's autfilt."""
@@ -147,7 +147,7 @@ def autfilt(
     def fn():
         aut = handle_filename(filename)
         aut_v1, str_v1 = filt(aut, args or ())
-        if hoapp:
+        if v1pp:
             print(makeV1pp(aut_v1).pprint())
         else:
             print(str_v1)
