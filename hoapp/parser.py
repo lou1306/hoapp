@@ -201,7 +201,7 @@ class MakeAst(Transformer):
             num_states=num_states, start=tuple(start), states=tuple(states),
             ap=aps, aptype=tuple(types or ()),
             controllable_ap=tuple(ctrl_aps or ()),
-            acceptance_sets=num_acc, acceptance=acc,
+            acceptance_sets=num_acc, acceptance=acc[0],
             aliases=tuple(aliases),
             properties=tuple(properties),
             headers=tuple(headers))

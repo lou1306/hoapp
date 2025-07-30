@@ -45,7 +45,7 @@ class IntLit(Token, int, Expr):
         return Type.INT
 
 
-class RealLit(float, Expr):
+class RealLit(Token, float, Expr):
     def __repr__(self):
         return f"r{super().__repr__()}"
 

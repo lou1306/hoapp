@@ -228,7 +228,7 @@ class Automaton:
             f"tool: {self.tool}" if self.tool else "",
             f"States: {self.num_states}" if self.num_states is not None else "",  # noqa: E501
             f"""AP: {len(self.ap)} {" ".join(f'"{x}"' for x in self.ap)}""",
-            f"""Acceptance: {self.acceptance_sets} {" ".join(x.pprint() for x in self.acceptance)}""",  # noqa: E501
+            f"""Acceptance: {self.acceptance_sets} {self.acceptance.pprint()}""",  # noqa: E501
             controllable, aptype, *start, *aliases, properties, *headers,
         )
         return "".join((
@@ -412,7 +412,7 @@ class Automaton:
                 case _:
                     raise TypeError(acc)
 
-        prop = smt.And([acc_vmt(a) for a in self.acceptance])
+        prop = acc_vmt(self.acceptance)
         guarantees = [expr_vmt(x, self, vmt_aps)
                       for xx in self.get("guarantee", ())
                       for x in xx]
