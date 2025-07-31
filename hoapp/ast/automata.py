@@ -82,9 +82,9 @@ class Label:
 
     def type_check(self, aut: "Automaton"):
         if self.guard:
-            self.guard.type_check(aut)
+            Type.BOOL.check(self.guard, aut)
         for o in self.obligations:
-            o.type_check(aut)
+            Type.BOOL.check(o, aut)
         for o1, o2 in combinations(self.obligations, 2):
             if not o1.compatible_with(o2):
                 raise TypeError(f"Incompatible obligations {o1.pprint()}, {o2.pprint()}")  # noqa: E501
@@ -257,7 +257,7 @@ class Automaton:
         for header in ("assume", "guarantee"):
             for tup in self.get(header, ()):
                 for ltl in tup:
-                    ltl.type_check(self)
+                    Type.LTL.check(ltl, self)
         for s in self.states:
             s.type_check(self)
 

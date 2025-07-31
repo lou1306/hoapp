@@ -120,9 +120,7 @@ class USub(Expr):
         yield from self.operand.collect(t)
 
     def type_check(self, aut: "Automaton") -> Type:
-        op_type = self.operand.type_check(aut)
-        if not op_type <= Type.REAL:
-            raise TypeError(f"Unexpected {op_type} operand in {self}")
+        op_type = Type.REAL.check(self.operand, aut)
         return op_type
 
     def unalias(self, aut: "Automaton") -> "USub":
@@ -162,19 +160,14 @@ class InfixOp(Expr):
         return InfixOp(operands=ops, op=self.op)
 
     def type_check(self, aut: "Automaton") -> Type:
-        types = [(o, o.type_check(aut)) for o in self.operands]
         if self.op in "&|!XFG":
-            wrong = [(o, t) for o, t in types if not t <= Type.BOOL]
-            result = Type.BOOL
+            types = [Type.LTL.check(o, aut) for o in self.operands]
+            return max(types) if self.op in "&|!" else Type.LTL
         elif self.op == "*":
-            wrong = [(o, t) for o, t in types if not t <= Type.REAL]
-            result = (Type.INT if all(t <= Type.INT for _, t in types) else Type.REAL)  # noqa: E501
+            types = [Type.REAL.check(o, aut) for o in self.operands]
+            return max(types)
         else:
             raise TypeError(f"Unexpected operator: {self.op}")
-        if wrong:
-            raise TypeError(f"Invalid operands for {self.op}: {wrong}"
-                            f" (expected '{result.value}')")
-        return result
 
     def unalias(self, aut: "Automaton") -> "InfixOp":
         ops = tuple(o.unalias(aut) for o in self.operands)
@@ -205,21 +198,16 @@ class BinaryOp(Expr):
         return mapping.get(self, self)
 
     def type_check(self, aut: "Automaton") -> Type:
-        tl, tr = self.left.type_check(aut), self.right.type_check(aut)
         if self.op in "+-":
-            error = tl <= Type.BOOL or tr <= Type.BOOL
-            result = (Type.INT if all(t <= Type.INT for t in (tl, tr)) else Type.REAL)  # noqa: E501
+            tl, tr = (Type.REAL.check(x, aut) for x in (self.left, self.right))
+            return max(tl, tr)
         elif self.op == "U":
-            error = not (tl <= Type.BOOL and tr <= Type.BOOL)
-            result = Type.BOOL
+            tl, tr = (Type.LTL.check(x, aut) for x in (self.left, self.right))
+            return Type.LTL
         else:
-            error = not (tl <= Type.REAL and tr <= Type.REAL)
-            result = Type.BOOL
-        if error:
-            raise TypeError(
-                f"Invalid operands for {self.pprint()}: {tl}, {tr}"
-                f" (expected '{result.value}')")
-        return result
+            tl = self.left.type_check(aut)
+            tl.check(self.right, aut)
+            return Type.BOOL
 
     def unalias(self, aut: "Automaton") -> "BinaryOp":
         lhs, rhs = self.left.unalias(aut), self.right.unalias(aut)
