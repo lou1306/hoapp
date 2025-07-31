@@ -83,6 +83,9 @@ class MakeAst(Transformer):
     def eq(self, tree):
         return self.compare(tree)
 
+    def impl(self, tree):
+        return BinaryOp(*tree)
+
     def until(self, tree):
         return BinaryOp(tree[0], "U", tree[1])
 

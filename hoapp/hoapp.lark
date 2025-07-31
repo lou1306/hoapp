@@ -57,26 +57,26 @@ INF_FIN : "Inf"|"Fin"
 // Expressions
 // Really these also contain LTL, but it's a trade secret
 
-?label_expr : until
+?label_expr : impl
 
-?base_expr : BOOLEAN | INTLIT | REALLIT | INT | ANAME | neg | minus | ltl_fgx
-             | "(" label_expr ")"
-            //  | label_expr LOGIC_OP label_expr
+?base_expr : BOOLEAN | INTLIT | REALLIT | INT | ANAME | neg | minus | "(" label_expr ")"
 
-?until : disj ("U" disj)?
+?impl: disj (IMPLOP disj)?
 ?disj : conj ("|" conj)*
-?conj : eq ("&" eq)*
+?conj : until ("&" until)*
+?until : ltl_fgx ("U" until)?
+?ltl_fgx : eq | FGX eq
 ?eq : compare (EQOP compare)?
 ?compare : addsub (CMPOP addsub)*
 ?addsub : mul (SUMOP mul)*
 ?mul : base_expr ("*" base_expr)*
 neg : "!" base_expr
 minus: "-" base_expr
-ltl_fgx : FGX base_expr
 
-EQOP : "=="|"!="
-CMPOP : "<"|"<="|">"|">="
-SUMOP : "+"|"-"
+IMPLOP: "<->" | "->"
+EQOP : "==" | "!="
+CMPOP : "<" | "<=" | ">" | ">="
+SUMOP : "+" | "-"
 TYPE : "int" | "bool" | "real"
 FGX :  "F" | "G" | "X"
 

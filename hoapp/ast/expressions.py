@@ -201,9 +201,9 @@ class BinaryOp(Expr):
         if self.op in "+-":
             tl, tr = (Type.REAL.check(x, aut) for x in (self.left, self.right))
             return max(tl, tr)
-        elif self.op == "U":
+        elif self.op in ("<->", "->", "U"):
             tl, tr = (Type.LTL.check(x, aut) for x in (self.left, self.right))
-            return Type.LTL
+            return Type.LTL if self.op == "U" else max(tl, tr)
         else:
             tl = self.left.type_check(aut)
             tl.check(self.right, aut)
@@ -227,13 +227,15 @@ class BinaryOp(Expr):
 
 Z3_OPS = {
     "&": z3.And, "|": z3.Or, "+": z3.Sum, "-": sub, "*": z3.Product,
-    "==": eq, "!=": ne, "<": lt, "<=": le, ">": ge, ">=": gt}
+    "==": eq, "!=": ne, "<": lt, "<=": le, ">": ge, ">=": gt,
+    "<->": eq, "->": z3.Implies
+    }
 
 SMT_OPS = {
     "&": smt.And, "|": smt.Or, "+": smt.Plus, "-": smt.Minus, "*": smt.Times,
     "==": smt.EqualsOrIff, "!=": smt.NotEquals, "<": smt.LT, "<=": smt.LE,
-    ">": smt.GE, ">=": smt.GT, "F": vmt.F, "G": vmt.G, "X": vmt.X,
-    "U": vmt.U}
+    ">": smt.GE, ">=": smt.GT, "<->": smt.Iff, "->": smt.Implies,
+    "F": vmt.F, "G": vmt.G, "X": vmt.X, "U": vmt.U}
 
 
 Z3_TYPES = {Type.INT: z3.Int, Type.BOOL: z3.Bool, Type.REAL: z3.Real}
