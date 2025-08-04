@@ -178,14 +178,14 @@ class State:
 class Automaton:
     """A HOApp automaton."""
     version: Identifier
-    name: str | None
-    tool: str | tuple[str, str] | None
-    num_states: int | None
     start: tuple[Int, ...]
     ap: tuple[str, ...]
     states: tuple[State, ...]
     acceptance_sets: int
     acceptance: AccCond
+    name: str | None = field(default=None)
+    tool: str | tuple[str, str] | None = field(default=None)
+    num_states: int | None = field(default=None)
     aptype: tuple[Type, ...] = field(default_factory=tuple)
     controllable_ap: tuple[Int, ...] = field(default_factory=tuple)
     aliases: tuple[tuple[str, Expr], ...] = field(default_factory=tuple)
