@@ -1,0 +1,16 @@
+HOA: v1pp
+States: 2
+Start: 0
+AP: 2 "x" "y"
+AP-type: int int
+controllable-AP: 0 1
+Alias: @x 0
+Alias: @y 1
+Acceptance: 1 Inf(0)
+--BODY--
+State: 0 "s0" {0}
+[t -> f $ @x := @x, @y := @x] 1
+State: 1 "s1"
+[@x != @y] 0
+[@x == @y $ @x := @y, @y := @x] 1
+--END--
