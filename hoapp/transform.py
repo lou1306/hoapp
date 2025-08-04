@@ -58,7 +58,7 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
             edges.append(replace(e, label=lbl))
         states.append(replace(s, label=state_lbl, edges=tuple(edges)))  # noqa: E501
 
-    v1pp_ap = next(iter(v1.get("v1pp-AP")), None)
+    v1pp_ap = next(iter(v1.get("v1pp-AP", ())), None)
     if v1pp_ap is not None:
         aps = v1pp_ap
     else:
