@@ -170,7 +170,7 @@ def product(
 
 
 @main.command()
-def ltl2tgba(
+def ltl2hoapp(
     formula: Annotated[str, typer.Option("--formula", "-f", help=strings.formula_help)],  # noqa: E501
     ap_type: Annotated[Optional[List[str]], typer.Option("--type", "-t", help=strings.type_help)] = None,  # noqa: E501
     debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
