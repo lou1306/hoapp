@@ -6,7 +6,7 @@ from lark import Lark, Token, Transformer
 
 from hoapp.ast.acceptance import AccAtom, AccCompound
 from hoapp.ast.automata import Automaton, Edge, Label, State
-from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Identifier,
+from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier,
                                    InfixOp, Int, IntLit, RealLit, String, Type,
                                    USub)
 
@@ -217,6 +217,11 @@ def mk_parser(start="test_terminals"):
 
 
 __HOAPP_PARSER = mk_parser("automaton")
+__EXPR_PARSER = mk_parser("label_expr")
+
+
+def parse_expr(expr: str) -> Expr:
+    return __EXPR_PARSER.parse(expr)
 
 
 def parse_string(s: str) -> Automaton:

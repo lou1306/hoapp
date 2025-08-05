@@ -12,15 +12,16 @@ import pysmt.shortcuts as smt  # type: ignore
 import typer
 from pyvmt.ltl_encoder import ltl_encode  # type: ignore
 
+from hoapp.ast.expressions import Boolean
 import hoapp.strings as strings
 import hoapp.util as util
 from hoapp.ast.ast import Type
 from hoapp.ast.automata import Automaton
-from hoapp.transform import makeV1pp
+from hoapp.transform import makeV1pp, quote_exprs
 from hoapp.util import filt
 from hoapp.util import product as prod
 
-from .parser import parse, parse_stream
+from .parser import parse, parse_expr, parse_stream
 
 main = typer.Typer(pretty_exceptions_show_locals=False)
 filename_argument = typer.Argument(help=strings.hoapp_path_help, allow_dash=True)  # noqa: E501
@@ -196,9 +197,16 @@ def ltl2hoapp(
         return name.strip(), Type(typ.strip())
 
     def fn():
-        print(formula)
-        types = dict(parse_cli_type(t) for t in ap_type)
-        aut = util.ltl2tgba(formula, types)
+        expr = parse_expr(formula)
+        parsed_types = [parse_cli_type(t) for t in ap_type]
+        aps, aptypes = zip(*parsed_types)
+        dummy = Automaton(
+            version="", num_states=0, states=(), ap=aps,
+            aptype=aptypes, start=(),
+            acceptance_sets=0, acceptance=Boolean(True, None)).auto_alias()
+        expr.type_check(dummy)
+        quoted, types = quote_exprs(expr).pprint(), dict(parsed_types)
+        aut = util.ltl2tgba(quoted, types)
         print(aut.pprint())
 
     catch_errors(debug=debug)(fn)()

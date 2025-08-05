@@ -5,8 +5,28 @@ from typing import Mapping, Optional
 
 from hoapp.ast.automata import Automaton, Label
 from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier,
-                                   InfixOp, Int, String, Type)
+                                   InfixOp, Int, String, Type, USub)
 from hoapp.parser import mk_parser
+
+CMP_OPS = ("==", "!=" ">=", ">", "<=", "<")
+
+
+def quote_exprs(expr: Expr):
+    match expr:
+        case Alias():
+            return String(expr.pprint())
+        case BinaryOp(op=op) if op in CMP_OPS:
+            return String(expr.pprint())
+        case BinaryOp(left=left, op=op, right=right):
+            lhs, rhs = quote_exprs(left), quote_exprs(right)
+            return BinaryOp(left=lhs, op=op, right=rhs)
+        case InfixOp(operands=ops, op=op):
+            recurse = (quote_exprs(o) for o in ops)
+            return InfixOp(operands=tuple(recurse), op=op)
+        case USub(arg=arg):
+            return USub(arg=quote_exprs(arg))
+        case _:
+            return expr
 
 
 def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automaton:  # noqa: E501
