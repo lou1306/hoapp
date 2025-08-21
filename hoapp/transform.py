@@ -8,7 +8,7 @@ from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier,
                                    InfixOp, Int, String, Type, USub)
 from hoapp.parser import mk_parser
 
-CMP_OPS = ("==", "!=" ">=", ">", "<=", "<")
+CMP_OPS = ("==", "!=", ">=", ">", "<=", "<")
 
 
 def quote_exprs(expr: Expr):
