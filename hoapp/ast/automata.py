@@ -140,9 +140,10 @@ class State:
 
     def pprint(self):
         sig = f" {{{' '.join(str(x) for x in self.acc_sig)}}}" if self.acc_sig else ""  # noqa: E501
+        name = f' "{self.name}"' if self.name else ""
         label = self.label.pprint() if self.label else ""
         return "\n".join((
-            f"State: {label}{self.index}{sig}",
+            f"State: {label}{self.index}{name}{sig}",
             *(e.pprint() for e in self.edges)))
 
     def collect(self, t):
