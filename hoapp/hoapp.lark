@@ -65,7 +65,7 @@ INF_FIN : "Inf"|"Fin"
 ?disj : conj ("|" conj)*
 ?conj : until ("&" until)*
 ?until : ltl_fgx ("U" until)?
-?ltl_fgx : eq | FGX eq
+?ltl_fgx : eq | FGX ltl_fgx
 ?eq : compare (EQOP compare)?
 ?compare : addsub (CMPOP addsub)*
 ?addsub : mul (SUMOP mul)*
