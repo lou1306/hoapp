@@ -23,8 +23,8 @@ def quote_exprs(expr: Expr):
         case InfixOp(operands=ops, op=op):
             recurse = (quote_exprs(o) for o in ops)
             return InfixOp(operands=tuple(recurse), op=op)
-        case USub(arg=arg):
-            return USub(arg=quote_exprs(arg))
+        case USub(operand=o):
+            return USub(operand=quote_exprs(o))
         case _:
             return expr
 
