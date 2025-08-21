@@ -151,7 +151,13 @@ def autfilt(
         if v1pp:
             print(makeV1pp(aut_v1).pprint())
         else:
-            print(str_v1)
+            header, body = str_v1.split("--BODY--", 1)
+            print(header.strip())
+            for hd, bd in aut_v1.headers:
+                if hd.startswith("v1pp-"):
+                    print(f"{hd}: {' '.join(str(x) for x in bd)}")
+            print("--BODY--")
+            print(body.strip())
     catch_errors(debug=debug)(fn)()
 
 
