@@ -386,8 +386,10 @@ class Automaton:
                 tgt_index = e.get_target()
                 tgt_state = smt.Equals(vmt.Next(state), smt.Int(tgt_index))  # noqa: E501
 
-                acc_sig = set([*(s.acc_sig or ()), *(e.acc_sig or ())])
                 # Update acceptance condition bits
+                # The i-th acceptance bit is set iff
+                # either s or e belongs to acceptance set i
+                acc_sig = set([*(s.acc_sig or ()), *(e.acc_sig or ())])
                 next_acc = [
                     vmt.Next(a) if i in acc_sig else smt.Not(vmt.Next(a))
                     for i, a in enumerate(acc_vars)]
