@@ -105,7 +105,11 @@ def empty(
     m.serialize(model_stream, properties=m.get_all_properties())
     solver_in = model_stream.getvalue()
     proc = run([ic3ia, "-rlive", "-n", "0", "-w"], capture_output=True,
-               input=solver_in, text=True, check=True)
+               input=solver_in, text=True, check=False)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"{ic3ia} failed with the following error:\n{proc.stderr}")
+
     lines = proc.stdout.splitlines()
     is_safe = lines[-1].strip() == "safe"
     if is_safe:
