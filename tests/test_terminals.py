@@ -1,5 +1,7 @@
-from lark import UnexpectedToken
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from lark import UnexpectedToken
 
 from hoapp.ast.expressions import IntLit, RealLit
 from hoapp.parser import mk_parser
@@ -7,20 +9,21 @@ from hoapp.parser import mk_parser
 p = mk_parser("label_expr")
 
 
-def test_intlit() -> None:
-    for x in (0, 10, 23, 100, 999):
-        test_string = f"i{x}"
-        result = p.parse(test_string)
-        assert isinstance(result, IntLit)
-        assert int(result) == x
+@given(st.integers(min_value=0))
+def test_intlit(x: int) -> None:
+    # for x in (0, 10, 23, 100, 999):
+    test_string = f"i{x}"
+    result = p.parse(test_string)
+    assert isinstance(result, IntLit)
+    assert int(result) == x
 
 
-def test_reallit() -> None:
-    for x in ("0.", "0.0", "0.01", "100.", "999"):
-        test_string = f"r{x}"
-        result = p.parse(test_string)
-        assert isinstance(result, RealLit)
-        assert float(result) == float(x)
+@given(st.floats(min_value=0, allow_infinity=False, allow_nan=False))
+def test_reallit(x: float) -> None:
+    test_string = f"r{x:f}"
+    result = p.parse(test_string)
+    assert isinstance(result, RealLit)
+    assert float(result) == float(test_string[1:])
 
 
 def test_bad_intlit() -> None:
