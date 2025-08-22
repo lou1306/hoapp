@@ -210,13 +210,13 @@ class MakeAst(Transformer):
             headers=tuple(headers))
 
 
-def mk_parser(start="test_terminals"):
+def mk_parser(start="automaton"):
     with open(grammar_file) as grammar:
         parser = Lark(grammar, start=start, parser="lalr", transformer=MakeAst())  # noqa: E501
     return parser
 
 
-__HOAPP_PARSER = mk_parser("automaton")
+__HOAPP_PARSER = mk_parser()
 __EXPR_PARSER = mk_parser("label_expr")
 
 
