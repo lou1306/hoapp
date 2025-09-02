@@ -40,7 +40,7 @@ This should result in the following help message:
 Commands `autfilt`, `ltl2hoapp`, and `product` require [Spot](https://spot.lre.epita.fr/). Simply
 follow the setup instructions and make sure that `autfilt` and `ltl2tgba` are available in the `PATH`.
 
-Command `empty` requires `ic3ia`. A (relatively) simple way to obtain it is the following:
+Command `empty` requires [IC3IA](https://es-static.fbk.eu/people/griggio/ic3ia/). A (relatively) simple way to obtain it is the following:
 
 1. Install `podman` (https://podman.io/).
 2. Launch the podman daemon.
