@@ -193,13 +193,8 @@ def ltl2hoapp(
     Types for all non-Boolean variables must be provided with --type/-t.
 
     Use ALIASES for variables and i/r PREFIXES for literals.
-    For instance, consider the formula "Globally, variable a is equal to 1":
-
-    * G(a == 1)         # WRONG, no quotes
-
-    * G("a == 1")       # WRONG, did not use aliases and prefixes
-
-    * G("@a == i1")     # CORRECT
+    For instance, the formula "Globally, variable a is equal to 1" should be
+    written as "G @a == i1".
     """
 
     def parse_cli_type(cli_type: str) -> tuple[str, Type]:
