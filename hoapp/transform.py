@@ -156,7 +156,8 @@ def makeV1(aut: Automaton) -> Automaton:
             for ltl in lst:
                 headers.append((f"v1pp-{header}", (f'"{ltl.pprint()}"', )))
     if aut.controllable_ap:
-        headers.append(("v1pp-controllable-AP", aut.controllable_ap))
+        str_control_ap = tuple(str(x) for x in aut.controllable_ap)
+        headers.append(("v1pp-controllable-AP", str_control_ap))
 
     return replace(
         aut, version=Identifier("v1"), num_states=len(states), ap=tuple(aps),
