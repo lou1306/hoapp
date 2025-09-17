@@ -1,6 +1,7 @@
 
 from dataclasses import dataclass, field, replace
 from itertools import combinations, groupby
+import json
 from typing import Any, Iterator, Mapping, Optional
 
 import pysmt.shortcuts as smt  # type: ignore
@@ -223,10 +224,19 @@ class Automaton:
         properties = (
             f"""properties: {" ".join(self.properties)}"""  # noqa: E501
             if self.properties else "")
+
+        def unquote(s: str) -> str:
+            if (s.startswith("\"") and s.endswith("\"")):
+                s = s[1:-1]
+            return s
+
+        name = unquote(self.name or "")
+        tool = unquote(self.tool or "")
+
         header = (
             f"HOA: {self.version}",
-            f"name: {self.name}" if self.name else "",
-            f"tool: {self.tool}" if self.tool else "",
+            f"name: {json.dumps(name)}" if name else "",  # escape quotes
+            f"tool: {json.dumps(tool)}" if tool else "",
             f"States: {self.num_states}" if self.num_states is not None else "",  # noqa: E501
             f"""AP: {len(self.ap)} {" ".join(f'"{x}"' for x in self.ap)}""",
             f"""Acceptance: {self.acceptance_sets} {self.acceptance.pprint()}""",  # noqa: E501
