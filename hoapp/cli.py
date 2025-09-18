@@ -21,7 +21,7 @@ from hoapp.transform import makeV1pp, quote_exprs
 from hoapp.util import filt
 from hoapp.util import product as prod
 
-from .parser import parse, parse_expr, parse_stream
+from .parser import parse, parse_expr, parse_stream, parse_string
 
 main = typer.Typer(pretty_exceptions_show_locals=False)
 filename_argument = typer.Argument(help=strings.hoapp_path_help, allow_dash=True)  # noqa: E501
@@ -151,7 +151,11 @@ def autfilt(
 
     def fn():
         aut = handle_filename(filename)
-        aut_v1, str_v1 = filt(aut, args or ())
+        pre_v1, str_v1 = filt(aut, args or ())
+        aut_v1 = parse_string(str_v1)
+        headers = [*aut_v1.headers]
+        headers.extend(h for h in pre_v1.headers if h[0].startswith("v1pp"))
+        aut_v1 = replace(aut_v1, headers=headers)
         if v1pp:
             print(makeV1pp(aut_v1).pprint())
         else:
