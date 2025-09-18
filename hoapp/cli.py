@@ -155,6 +155,10 @@ def autfilt(
         if v1pp:
             print(makeV1pp(aut_v1).pprint())
         else:
+            if not (str_v1.startswith("HOA: v1")):
+                # Not in HOA format
+                print(str_v1)
+                return
             header, body = str_v1.split("--BODY--", 1)
             print(header.strip())
             for hd, bd in aut_v1.headers:
