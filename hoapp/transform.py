@@ -80,7 +80,10 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
 
     v1pp_ap = next(iter(v1.get("v1pp-AP", ())), None)
     if v1pp_ap is not None:
-        aps = v1pp_ap
+        ap_count_str, *aps = v1pp_ap
+        ap_count = int(ap_count_str)
+        if ap_count != len(aps):
+            raise ValueError(f"Expected {ap_count} APs, found {len(aps)}")
     else:
         aps_list = []
         p = mk_parser("aname")
