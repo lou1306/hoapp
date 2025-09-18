@@ -89,7 +89,7 @@ def ltl2tgba(formula: str, types: dict[str, Type]) -> Automaton:
     autv1 = mk_parser("automaton").parse(output)
     aut = makeV1pp(autv1, types)
     name = aut.name
-    name = name.replace("\"", "")
+    name = (name or "").replace("\"", "")
     name = name.replace("\\", "")
     aut = replace(aut, name=name)
     aut.type_check()
