@@ -153,7 +153,7 @@ def autfilt(
         aut = handle_filename(filename)
         pre_v1, str_v1 = filt(aut, args or ())
         if not (str_v1.startswith("HOA: v1")):
-            # Not in HOA format, therrefore just print and quit
+            # Not in HOA format, therefore just print and quit
             print(str_v1)
             return
         aut_v1 = parse_string(str_v1)
