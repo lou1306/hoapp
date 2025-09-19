@@ -152,6 +152,10 @@ def autfilt(
     def fn():
         aut = handle_filename(filename)
         pre_v1, str_v1 = filt(aut, args or ())
+        if not (str_v1.startswith("HOA: v1")):
+            # Not in HOA format, therrefore just print and quit
+            print(str_v1)
+            return
         aut_v1 = parse_string(str_v1)
         headers = [*aut_v1.headers]
         headers.extend(h for h in pre_v1.headers if h[0].startswith("v1pp"))
@@ -159,10 +163,6 @@ def autfilt(
         if v1pp:
             print(makeV1pp(aut_v1).pprint())
         else:
-            if not (str_v1.startswith("HOA: v1")):
-                # Not in HOA format
-                print(str_v1)
-                return
             header, body = str_v1.split("--BODY--", 1)
             print(header.strip())
             for hd, bd in aut_v1.headers:
