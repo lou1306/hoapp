@@ -55,8 +55,6 @@ def makeV1pp(v1: Automaton, types: Optional[dict[str, Type]] = None) -> Automato
             return Boolean(True, None)
         if isinstance(e, InfixOp):
             ops = tuple(remove_obligations(x) for x in e.operands)
-            # if len(ops) == 0:
-            #     return Boolean(e.op in "&!", None)
             return InfixOp(tuple(o for o in ops if o), e.op)
         return e
 

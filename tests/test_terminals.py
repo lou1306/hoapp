@@ -11,7 +11,6 @@ p = mk_parser("label_expr")
 
 @given(st.integers(min_value=0))
 def test_intlit(x: int) -> None:
-    # for x in (0, 10, 23, 100, 999):
     test_string = f"i{x}"
     result = p.parse(test_string)
     assert isinstance(result, IntLit)
