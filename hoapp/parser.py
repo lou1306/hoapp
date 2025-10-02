@@ -190,7 +190,11 @@ class MakeAst(Transformer):
             if isinstance(ctrl_aps, int):
                 ctrl_aps = [ctrl_aps]
             types = types or d.get("AP-type")
-            types = [Type(t) for t in types or ()]
+            try:
+                types = [Type(t) for t in types or ()]
+            except TypeError:
+                # types is not a list but a single type
+                types = [Type(types)]
             others = (k for k in d if k not in canonical_headers)
             for k in others:
                 value = d[k] if isinstance(d, (list, tuple)) else (d[k], )
