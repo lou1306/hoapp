@@ -92,8 +92,8 @@ def empty(
     """Check an automaton for emptiness. Requires `ic3ia`."""
     aut = handle_filename(filename)
     aut.type_check()
-    model, prop = aut.to_vmt()
-    m = ltl_encode(model, smt.Not(prop))
+    model, empty_prop = aut.to_vmt()
+    m = ltl_encode(model, empty_prop)
 
     ic3ia = which("ic3ia")
     if not ic3ia:

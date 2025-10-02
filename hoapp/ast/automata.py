@@ -73,7 +73,7 @@ class Label:
 
     def to_vmt(self, aut: "Automaton", aps: list):
         clauses = []
-        if self.guard:
+        if self.guard is not None:
             clauses.append(expr_vmt(self.guard, aut, aps))
         for o in self.obligations:
             lhs = vmt.Next(expr_vmt(o.left, aut, aps))
@@ -387,8 +387,10 @@ class Automaton:
             model.add_init(smt.Not(acc_var))
             acc_vars.append(acc_var)
 
+        next_live = []
         trans = []
         for s in self.states:
+            next_live_s = []
             lbl = s.label.to_vmt(self, vmt_aps) if s.label else None
             cur_state = smt.Equals(state, smt.Int(s.index))
             for e in s.edges:
@@ -404,10 +406,16 @@ class Automaton:
                 next_acc = [
                     vmt.Next(a) if i in acc_sig else smt.Not(vmt.Next(a))
                     for i, a in enumerate(acc_vars)]
+                next_live_s.append(e_lbl)
                 trans.append(smt.And(cur_state, e_lbl, tgt_state, *next_acc))
+            # Trace is live if we are in current state and at least one transition if enabled  # noqa: E501
+            next_live.append(smt.And(cur_state, smt.Or(*next_live_s)))
 
         model.add_init(smt.Or(*(smt.Equals(state, smt.Int(int(x))) for x in self.start)))  # noqa: E501
         model.add_trans(smt.Or(*trans))
+        live = model.create_state_var("live", smt.BOOL)
+        model.add_init(live)
+        model.add_trans(smt.Iff(vmt.Next(live), smt.Or(*next_live)))
 
         def acc_vmt(acc: AccCond):
             match acc:
@@ -436,4 +444,6 @@ class Automaton:
                    for x in xx]
         if assumes:
             prop = smt.Implies(smt.And(*assumes), prop)
-        return model, prop
+        # There is no live path where the acceptance condition holds
+        empty_prop = smt.Not(smt.And(vmt.G(live), prop))
+        return model, empty_prop
