@@ -63,7 +63,7 @@ class Label:
             InfixOp(tuple(constraints), "&"))
         return replace(self, guard=guard, obligations=tuple(obls))
 
-    def pprint(self) -> str:
+    def pprint(self, *_) -> str:
         if self.guard is None and not self.obligations:
             return ""
         ob = ", ".join(x.pprint() for x in self.obligations)
@@ -89,6 +89,7 @@ class Label:
         for o1, o2 in combinations(self.obligations, 2):
             if not o1.compatible_with(o2):
                 raise TypeError(f"Incompatible obligations {o1.pprint()}, {o2.pprint()}")  # noqa: E501
+        return Type.BOOL
 
 
 @dataclass(frozen=True)

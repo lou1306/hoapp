@@ -57,7 +57,7 @@ INF_FIN : "Inf"|"Fin"
 // Expressions
 // Really these also contain LTL, but it's a trade secret
 
-?label_expr : impl
+?label_expr : impl | label
 
 ?base_expr : BOOLEAN | INTLIT | REALLIT | INT | ANAME | neg | minus | "(" label_expr ")"
 

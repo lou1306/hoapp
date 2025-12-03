@@ -54,7 +54,6 @@ class MakeAst(Transformer):
 
     format_version = _head
     acc_sig = _head
-    label = _id
     header = _id
     body = _id
     acc_sig = _id
@@ -125,9 +124,11 @@ class MakeAst(Transformer):
         else:
             return None
 
+    def label(self, tree):
+        return self._handle_label([tree])
+
     def edge(self, tree):
-        lbl = self._handle_label(tree)
-        target, acc_sig = tree[1:]
+        lbl, target, acc_sig = tree
         e = Edge(target, acc_sig, lbl)
         return e
 

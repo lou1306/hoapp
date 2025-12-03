@@ -8,7 +8,7 @@ from hoapp.ast.expressions import (Alias, BinaryOp, Boolean, Expr, Identifier,
                                    InfixOp, Int, String, Type, USub)
 from hoapp.parser import mk_parser
 
-CMP_OPS = ("==", "!=", ">=", ">", "<=", "<")
+CMP_OPS = ("==", "!=", ">=", ">", "<=", "<", ":=")
 
 
 def quote_exprs(expr: Expr):
@@ -23,6 +23,11 @@ def quote_exprs(expr: Expr):
         case InfixOp(operands=ops, op=op):
             recurse = (quote_exprs(o) for o in ops)
             return InfixOp(operands=tuple(recurse), op=op)
+        case Label(guard=g, obligations=obs):
+            guard = [quote_exprs(g)] if g else []
+            obligations = tuple(quote_exprs(o) for o in obs)
+            ops = (*guard, *obligations)
+            return InfixOp(operands=ops, op="&") if ops else Boolean(True, None)  # noqa: E501
         case USub(operand=o):
             return USub(operand=quote_exprs(o))
         case _:
