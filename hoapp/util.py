@@ -84,8 +84,11 @@ def product(aut1: Automaton, aut2: Automaton) -> Automaton:
     return new_aut
 
 
-def ltl2tgba(formula: str, types: dict[str, Type]) -> Automaton:
-    output = check_output(["ltl2tgba", "-S", "-f", formula]).decode()
+def ltl2tgba(formula: str, types: dict[str, Type], sba: bool = False) -> Automaton:  # noqa: E501
+    cmd = ["ltl2tgba", "-f", formula]
+    if sba:
+        cmd.append("--sba")
+    output = check_output(cmd).decode()
     autv1 = mk_parser("automaton").parse(output)
     aut = makeV1pp(autv1, types)
     name = aut.name

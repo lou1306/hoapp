@@ -192,6 +192,7 @@ def product(
 def ltl2hoapp(
     formula: Annotated[str, typer.Option("--formula", "-f", help=strings.formula_help)],  # noqa: E501
     ap_type: Annotated[Optional[List[str]], typer.Option("--type", "-t", help=strings.type_help)] = None,  # noqa: E501
+    sba: Annotated[bool, typer.Option("--sba", "-B", help=strings.sba_help)] = False,
     debug: Annotated[bool, typer.Option(help=strings.debug_help)] = False
 ):
     """Translate LTL formulas into a HOApp Büchi automaton.
@@ -219,7 +220,7 @@ def ltl2hoapp(
             acceptance_sets=0, acceptance=Boolean(True, None)).auto_alias()
         expr.type_check(dummy)
         quoted, types = quote_exprs(expr).pprint(), dict(parsed_types)
-        aut = util.ltl2tgba(quoted, types)
+        aut = util.ltl2tgba(quoted, types, sba)
         print(aut.pprint())
 
     catch_errors(debug=debug)(fn)()
