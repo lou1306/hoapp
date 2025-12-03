@@ -313,7 +313,9 @@ class Automaton:
         if self.aptype is None or len(self.aptype) == 0:
             return Type.BOOL
         try:
-            return self.aptype[ap]
+            return self.aptype[ap-1]
+        except IndexError:
+            raise TypeError(f"AP index {ap} out of range in {self.aptype}")
         except KeyError:
             raise TypeError(f"Unknown AP {ap} in {self}")
 
