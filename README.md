@@ -6,6 +6,9 @@ builds on top of the popular Hanoi Omega Automata (HOA) format.
 
 ## Quickstart
 
+Install [`uv`](https://docs.astral.sh/uv/). We use it to manage this project and
+its dependencies. Then:
+
 ```bash
 git clone git@github.com:lou1306/hoapp.git
 cd hoapp
@@ -40,7 +43,8 @@ This should result in the following help message:
 Commands `autfilt`, `ltl2hoapp`, and `product` require [Spot](https://spot.lre.epita.fr/). Simply
 follow the setup instructions and make sure that `autfilt` and `ltl2tgba` are available in the `PATH`.
 
-Command `empty` requires [IC3IA](https://es-static.fbk.eu/people/griggio/ic3ia/). A (relatively) simple way to obtain it is the following:
+Command `empty` requires [IC3IA](https://es-static.fbk.eu/people/griggio/ic3ia/).
+A (relatively) simple way to obtain it is the following:
 
 1. Install `podman` (https://podman.io/).
 2. Launch the podman daemon.
@@ -54,21 +58,35 @@ podman run -i --memory 16G docker.io/library/rliveinf:latest /home/bin/ic3ia $@
 
 4. Put the `ic3ia` script in a `PATH` directory.
 
-## Kudos sect
+## For developers
 
-The aforementioned tools (Spot, IC3ia) made this tool possible with relatively little effort.
+We use [`mypy`](https://www.mypy-lang.org/) to ensure (some level of) type
+safety, and [`hypothesis`](https://hypothesis.readthedocs.io/en/) on top of
+[`pytest`](https://docs.pytest.org/en/stable/) for property-based
+testing.
+As of 2025-12-03, we expect *every commit in `master`* and *every PR* to pass
+both type-checking and testing. To check that your contributions are
+compliant, use:
+
+```bash
+uv run mypy .
+uv run pytest
+```
+
+(At the moment this is an informal requirement. In the future, we plan to lock
+the `master` branch and implement automated checks on PRs via Github Actions.)
+
+## Kudos section
+
+The aforementioned tools made this tool possible with relatively little effort.
 Many thanks to their authors.
 Additional tools and libraries that greatly helped develop this tool include (in alphabetical order):
 
-* hypothesis, https://hypothesis.readthedocs.io/
 * lark, https://github.com/lark-parser/lark
-* mypy, https://www.mypy-lang.org/
 * typer, https://typer.tiangolo.com/
 * pyvmt, https://github.com/pyvmt/pyvmt/
-* uv, https://docs.astral.sh/uv/
 * z3, https://github.com/Z3Prover/z3/
 
 ## License
 
-The tool is MIT-licensed.
-
+The tool is MIT-licensed. See the `LICENSE` file for details.
