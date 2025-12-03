@@ -1,7 +1,7 @@
 [project]
 name = "hoapp"
 version = "0.2.0"
-description = "Add your description here"
+description = "API and CLI tool to parse, validate, and manipulate HOApp automata."
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.12"
