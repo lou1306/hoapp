@@ -8,8 +8,8 @@ on:
 
 
 jobs:
-  uv-example:
-    name: python
+  mypy-and-pytest:
+    name: Mypy and Pytest
     runs-on: ubuntu-latest
 
     steps:
